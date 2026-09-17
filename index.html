@@ -2,7 +2,7 @@
 <html lang="ar" dir="rtl">
 <head>
 <meta charset="UTF-8">
-<title>مطابقة الأصناف</title>
+<title>Bakers Way | لوحة العمليات</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -10,21 +10,21 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <style>
   :root{
-    --bg:#F1F3EF;
+    --bg:#F8F5EC;
     --panel:#FFFFFF;
-    --ink:#16241F;
-    --ink-soft:#4B5D55;
-    --line:#D8DED7;
-    --primary:#1F4A3D;
+    --ink:#31553A;
+    --ink-soft:#627665;
+    --line:#D9E0D2;
+    --primary:#416D47;
     --primary-ink:#FFFFFF;
-    --accent:#C98A2E;
-    --found-bg:#E3F1E4;
-    --found-ink:#1E6B37;
-    --partial-bg:#FBF0DA;
-    --partial-ink:#8A5A12;
+    --accent:#F4C85D;
+    --found-bg:#E7F1E2;
+    --found-ink:#3D7544;
+    --partial-bg:#FAF0D4;
+    --partial-ink:#927024;
     --notfound-bg:#FBE7E5;
     --notfound-ink:#A3382C;
-    --chip-bg:#EAEFE9;
+    --chip-bg:#EEF2E8;
     --shadow: 0 1px 2px rgba(20,30,25,.06);
   }
   @media (prefers-color-scheme: dark){
@@ -67,9 +67,9 @@
 
   /* Home dashboard */
   .home-screen{max-width:1180px;margin:0 auto;min-height:calc(100vh - 108px);display:flex;flex-direction:column;justify-content:center;}
-  .home-nav{display:flex;align-items:center;justify-content:space-between;margin-bottom:46px;gap:16px;}
-  .home-brand{display:flex;align-items:center;gap:10px;font-size:17px;font-weight:900;}
-  .brand-mark{width:37px;height:37px;border-radius:11px;background:var(--primary);color:var(--primary-ink);display:grid;place-items:center;font-size:18px;}
+  .home-nav{display:flex;align-items:center;justify-content:space-between;margin-bottom:46px;gap:16px;padding-bottom:15px;border-bottom:1px solid var(--line);}
+  .home-brand{display:flex;align-items:center;gap:12px;font-size:17px;font-weight:900;color:var(--primary);}
+  .brand-logo{display:block;width:58px;height:52px;object-fit:cover;object-position:center 29%;border-radius:11px;}
   .home-nav .badge{background:var(--chip-bg);color:var(--ink-soft);font-size:12px;padding:5px 10px;border-radius:20px;}
   .home-hero{max-width:720px;margin-bottom:30px;}
   .eyebrow{color:var(--accent);font-weight:900;font-size:12px;letter-spacing:.5px;margin-bottom:9px;}
@@ -107,6 +107,7 @@
   .form-stack{display:grid;gap:13px;max-width:650px;}.form-stack textarea{min-height:120px;resize:vertical;}.form-stack .field input{height:41px;}
   .delivery-form{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;align-items:end;}.delivery-form .primary{height:41px;padding:8px 13px;}
   .match-search{display:block;min-width:230px;margin-bottom:5px;font-size:12px;padding:6px 8px;}
+  .product-picker{position:relative;min-width:230px;}.product-suggestions{position:absolute;z-index:5;right:0;left:0;top:34px;background:var(--panel);border:1px solid var(--line);border-radius:7px;box-shadow:0 9px 22px rgba(30,60,35,.14);max-height:190px;overflow:auto;display:none;}.product-suggestions.open{display:block;}.product-suggestion{display:block;width:100%;text-align:right;border:0;border-bottom:1px solid var(--line);background:var(--panel);padding:8px 10px;color:var(--ink);font:inherit;font-size:12px;cursor:pointer;}.product-suggestion:hover{background:var(--found-bg);}.product-suggestion small{display:block;color:var(--ink-soft);margin-top:2px;}
   .match-actions{display:flex;align-items:center;gap:8px;}
   @media (max-width:700px){.entry-grid,.delivery-form{grid-template-columns:1fr 1fr;}.page-head{align-items:center;}.match-search{min-width:190px;}}
 
@@ -116,6 +117,7 @@
     padding-bottom:14px; margin-bottom:26px; gap:12px; flex-wrap:wrap;
   }
   header.top h1{font-size:22px; margin:0; font-weight:900; letter-spacing:.2px;}
+  .app-title{display:flex;align-items:center;gap:9px;}.app-title img{width:43px;height:34px;object-fit:contain;mix-blend-mode:multiply;}
   header.top .tagline{color:var(--ink-soft); font-size:13.5px; margin-top:4px;}
   header.top .badge{
     background:var(--chip-bg); color:var(--ink-soft); font-size:12px;
@@ -240,7 +242,7 @@
 <body>
 <section id="home" class="home-screen" aria-label="الصفحة الرئيسية">
   <nav class="home-nav">
-    <div class="home-brand"><span class="brand-mark">✓</span> مطابقة المخزون</div>
+    <div class="home-brand"><img class="brand-logo" src="bakers-way-logo.png" alt="Bakers Way"><span>لوحة عمليات بيكرز واي</span></div>
     <span class="badge">آمن · يعمل داخل متصفحك</span>
   </nav>
   <main>
@@ -253,9 +255,6 @@
       <button class="home-option" type="button" data-home-action="start">
         <span class="option-icon">↔</span><strong>مطابقة جديدة</strong><span>قارن قائمة طلباتك مع ملف المخزون وصدّر النتيجة إلى Excel.</span><span class="option-arrow">ابدأ الآن ←</span>
       </button>
-      <button class="home-option" type="button" data-home-action="upload">
-        <span class="option-icon">↑</span><strong>رفع ملف المخزون</strong><span>ابدأ بإضافة ملف Excel أو CSV يحتوي على الأصناف والكميات المتاحة.</span><span class="option-arrow">رفع الملف ←</span>
-      </button>
       <button class="home-option" type="button" data-home-action="guide">
         <span class="option-icon">?</span><strong>كيف يعمل؟</strong><span>دليل سريع يشرح خطوات تجهيز بياناتك ومراجعة نتائج المطابقة.</span><span class="option-arrow">عرض الدليل ←</span>
       </button>
@@ -267,9 +266,6 @@
       </button>
       <button class="home-option" type="button" data-home-action="feedback">
         <span class="option-icon">✦</span><strong>ملاحظات ومشاكل</strong><span>سجّل ملاحظة أو مشكلة وصدّرها إلى ملف Excel للمراجعة.</span><span class="option-arrow">إرسال ملاحظة ←</span>
-      </button>
-      <button class="home-option" type="button" data-home-action="start">
-        <span class="option-icon">▤</span><strong>تقارير المخزون</strong><span>جهّز تقرير توفر الأصناف، ثم نزّله كملف Excel.</span><span class="option-arrow">إعداد التقرير ←</span>
       </button>
     </div>
   </main>
@@ -292,7 +288,7 @@
 
   <header class="top">
     <div>
-      <h1>مطابقة الأصناف بالمخزون</h1>
+      <h1 class="app-title"><img src="bakers-way-logo.png" alt="Bakers Way">مطابقة الأصناف بالمخزون</h1>
       <div class="tagline">ارفع ملف المنتجات المتوفرة عندك، وقائمة الأصناف يلي بدك تطلبها، وطلع لك تقرير مطابقة فوري</div>
     </div>
     <div style="display:flex;gap:8px;align-items:center;"><button id="appHome" class="home-back" type="button">الرئيسية</button><div class="badge">يشتغل بالكامل بمتصفحك — لا يتم رفع ملفاتك لأي سيرفر</div></div>
@@ -788,7 +784,7 @@
         <td class="req-name">${escapeHtml(r.raw)}</td>
         <td class="req-qty">${escapeHtml(r.qtyDisplay)}</td>
         <td><span class="status-pill ${r.status}" data-statuscell>${badgeLabel(r.status)}</span></td>
-        <td><input class="match-search" data-search-i="${i}" type="text" placeholder="ابحث عن منتج، مثال: *فستق*براف*"><select class="matchsel" data-i="${i}">${selOptions}</select></td>
+        <td><div class="product-picker"><input class="match-search" data-search-i="${i}" type="text" autocomplete="off" placeholder="ابحث عن منتج، مثال: *فستق*براف*"><div class="product-suggestions" data-suggestions-i="${i}"></div><select class="matchsel" data-i="${i}">${selOptions}</select></div></td>
         <td class="qtycell" data-qtycell>${inv? inv.qty : '-'}</td>
         <td data-unitcell>${inv? (inv.unit||'-') : '-'}</td>
         <td class="confcell" data-confcell>${chosenIdx>=0? Math.round(chosenScore*100)+'%':'-'}</td>
@@ -801,12 +797,25 @@
     }
     // bind manual override
     tbody.querySelectorAll('input.match-search').forEach(input=>{
-      input.addEventListener('change', e=>{
-        const i=Number(e.target.dataset.searchI), found=searchInventory(e.target.value);
-        if(!found.length){ alert('لم يتم العثور على منتجات مطابقة.'); return; }
-        results[i].candidates=[...found,...results[i].candidates.filter(old=>!found.some(f=>f.idx===old.idx))].slice(0,30);
-        renderResults();
+      const i=Number(input.dataset.searchI);
+      const box=tbody.querySelector(`[data-suggestions-i="${i}"]`);
+      const chooseProduct=item=>{
+        results[i].candidates=[item,...results[i].candidates.filter(old=>old.idx!==item.idx)];
+        results[i].chosenIdx=item.idx;
+        results[i].status='found';
+        renderSummary(); renderResults();
+      };
+      input.addEventListener('input', e=>{
+        const found=searchInventory(e.target.value).slice(0,8);
+        if(!found.length){ box.classList.remove('open'); box.innerHTML=''; return; }
+        box.innerHTML=found.map(item=>{const inv=inventory[item.idx];return `<button class="product-suggestion" type="button" data-product-idx="${item.idx}">${escapeHtml(inv.name)}<small>${escapeHtml(inv.itemNumber||'-')} · ${inv.qty} ${escapeHtml(inv.unit||'')}</small></button>`;}).join('');
+        box.classList.add('open');
+        box.querySelectorAll('[data-product-idx]').forEach(button=>button.addEventListener('click',()=>chooseProduct({idx:Number(button.dataset.productIdx),score:1})));
       });
+      input.addEventListener('keydown', e=>{
+        if(e.key==='Enter'){ const first=box.querySelector('[data-product-idx]'); if(first){e.preventDefault();first.click();} }
+      });
+      input.addEventListener('blur', ()=>setTimeout(()=>box.classList.remove('open'),150));
     });
     tbody.querySelectorAll('[data-delete-i]').forEach(button=>button.addEventListener('click',()=>{
       const i=Number(button.dataset.deleteI); results.splice(i,1); wantedLines.splice(i,1); renderSummary(); renderResults();
