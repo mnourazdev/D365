@@ -96,6 +96,19 @@
   .guide-card li{padding:6px 0;}
   .guide-close{position:absolute;top:13px;left:13px;background:var(--chip-bg);border:0;border-radius:8px;width:32px;height:32px;cursor:pointer;color:var(--ink);font:inherit;font-size:20px;}
   @media (max-width:700px){.home-nav{margin-bottom:34px;}.home-options{grid-template-columns:1fr;}.home-option{min-height:154px;}.home-hero p{font-size:15px;}}
+  .mini-page{display:none;max-width:900px;margin:0 auto;padding:24px 0 70px;}
+  .mini-page.open{display:block;}
+  .page-head{display:flex;justify-content:space-between;align-items:flex-start;gap:15px;border-bottom:3px solid var(--primary);padding-bottom:15px;margin-bottom:23px;}
+  .page-head h1{font-size:24px;margin:0;}.page-head p{margin:4px 0 0;color:var(--ink-soft);font-size:13px;}
+  .home-back{border:1px solid var(--line);background:var(--panel);color:var(--ink);border-radius:7px;padding:7px 12px;cursor:pointer;font-family:inherit;font-weight:700;white-space:nowrap;}
+  .entry-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;align-items:end;}.entry-grid .primary{height:41px;padding:8px 13px;}
+  .simple-list{margin-top:18px;border:1px solid var(--line);border-radius:10px;overflow:auto;background:var(--panel);}.simple-list table{min-width:620px;}
+  .simple-list button,.row-delete{border:0;background:var(--notfound-bg);color:var(--notfound-ink);border-radius:6px;padding:5px 9px;cursor:pointer;font-family:inherit;font-weight:700;}
+  .form-stack{display:grid;gap:13px;max-width:650px;}.form-stack textarea{min-height:120px;resize:vertical;}.form-stack .field input{height:41px;}
+  .delivery-form{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;align-items:end;}.delivery-form .primary{height:41px;padding:8px 13px;}
+  .match-search{display:block;min-width:230px;margin-bottom:5px;font-size:12px;padding:6px 8px;}
+  .match-actions{display:flex;align-items:center;gap:8px;}
+  @media (max-width:700px){.entry-grid,.delivery-form{grid-template-columns:1fr 1fr;}.page-head{align-items:center;}.match-search{min-width:190px;}}
 
   header.top{
     display:flex; align-items:baseline; justify-content:space-between;
@@ -246,6 +259,18 @@
       <button class="home-option" type="button" data-home-action="guide">
         <span class="option-icon">?</span><strong>كيف يعمل؟</strong><span>دليل سريع يشرح خطوات تجهيز بياناتك ومراجعة نتائج المطابقة.</span><span class="option-arrow">عرض الدليل ←</span>
       </button>
+      <button class="home-option" type="button" data-home-action="manual">
+        <span class="option-icon">+</span><strong>إدخال أصناف يدويًا</strong><span>أنشئ قائمة مخزون صغيرة يدويًا ثم استخدمها في المطابقة.</span><span class="option-arrow">إضافة أصناف ←</span>
+      </button>
+      <button class="home-option" type="button" data-home-action="delivery">
+        <span class="option-icon">▣</span><strong>جدول التوصيل</strong><span>سجّل السائق والفاتورة والفترة والحالة لكل عملية توصيل.</span><span class="option-arrow">فتح الجدول ←</span>
+      </button>
+      <button class="home-option" type="button" data-home-action="feedback">
+        <span class="option-icon">✦</span><strong>ملاحظات ومشاكل</strong><span>سجّل ملاحظة أو مشكلة وصدّرها إلى ملف Excel للمراجعة.</span><span class="option-arrow">إرسال ملاحظة ←</span>
+      </button>
+      <button class="home-option" type="button" data-home-action="start">
+        <span class="option-icon">▤</span><strong>تقارير المخزون</strong><span>جهّز تقرير توفر الأصناف، ثم نزّله كملف Excel.</span><span class="option-arrow">إعداد التقرير ←</span>
+      </button>
     </div>
   </main>
   <div class="home-footer">لا يتم رفع ملفاتك إلى أي خادم — تتم المعالجة بالكامل على جهازك.</div>
@@ -270,7 +295,7 @@
       <h1>مطابقة الأصناف بالمخزون</h1>
       <div class="tagline">ارفع ملف المنتجات المتوفرة عندك، وقائمة الأصناف يلي بدك تطلبها، وطلع لك تقرير مطابقة فوري</div>
     </div>
-    <div class="badge">يشتغل بالكامل بمتصفحك — لا يتم رفع ملفاتك لأي سيرفر</div>
+    <div style="display:flex;gap:8px;align-items:center;"><button id="appHome" class="home-back" type="button">الرئيسية</button><div class="badge">يشتغل بالكامل بمتصفحك — لا يتم رفع ملفاتك لأي سيرفر</div></div>
   </header>
 
   <!-- STEP 1: inventory upload -->
@@ -347,6 +372,7 @@
       </div>
       <div style="display:flex;gap:8px;align-items:center;">
         <input type="text" id="search" placeholder="بحث بالنتائج...">
+        <button class="secondary" id="addRowBtn" type="button">+ إضافة سطر</button>
         <button class="secondary" id="exportBtn">⬇ تحميل اكسل</button>
       </div>
     </div>
@@ -363,6 +389,7 @@
             <th>الكمية المتاحة</th>
             <th>الوحدة</th>
             <th>الثقة</th>
+            <th>إجراء</th>
           </tr>
         </thead>
         <tbody id="resultsBody"></tbody>
@@ -373,6 +400,34 @@
 
 </div>
 
+<section id="manualPage" class="mini-page" aria-label="إدخال أصناف يدويًا">
+  <div class="page-head"><div><h1>إدخال أصناف يدويًا</h1><p>أدخل مخزونك يدويًا، ثم استخدمه مباشرة في أداة المطابقة.</p></div><button class="home-back" type="button">الرئيسية</button></div>
+  <div class="step">
+    <div class="entry-grid">
+      <div class="field"><label>رقم الصنف</label><input id="manualNumber" type="text" placeholder="اختياري"></div>
+      <div class="field"><label>اسم الصنف *</label><input id="manualName" type="text" placeholder="مثال: فستق برافو"></div>
+      <div class="field"><label>Available physical *</label><input id="manualQty" type="number" min="0" step="any" placeholder="0"></div>
+      <div class="field"><label>الوحدة</label><input id="manualUnit" type="text" placeholder="كرتون"></div>
+      <button class="primary" id="manualAdd" type="button">إضافة</button>
+    </div>
+    <div class="simple-list"><table><thead><tr><th>رقم الصنف</th><th>الاسم</th><th>Available physical</th><th>الوحدة</th><th></th></tr></thead><tbody id="manualBody"><tr><td colspan="5" class="empty">لم تتم إضافة أصناف بعد</td></tr></tbody></table></div>
+    <div class="btnrow"><button class="primary" id="useManualInventory" type="button">استخدم هذه الأصناف للمطابقة</button></div>
+  </div>
+</section>
+
+<section id="deliveryPage" class="mini-page" aria-label="جدول التوصيل">
+  <div class="page-head"><div><h1>جدول التوصيل</h1><p>سجل عمليات التوصيل اليومية وتابع حالتها.</p></div><button class="home-back" type="button">الرئيسية</button></div>
+  <div class="step"><div class="delivery-form">
+    <div class="field"><label>اسم السائق *</label><input id="driverName" type="text"></div><div class="field"><label>رقم الفاتورة *</label><input id="invoiceNo" type="text"></div><div class="field"><label>الفترة</label><select id="deliveryPeriod"><option>صباحي</option><option>مسائي</option></select></div>
+    <div class="field"><label>التاريخ</label><input id="deliveryDate" type="date"></div><div class="field"><label>الحالة</label><select id="deliveryStatus"><option>جديد</option><option>قيد التوصيل</option><option>تم التوصيل</option><option>مؤجل</option></select></div><button id="deliveryAdd" class="primary" type="button">إضافة توصيل</button>
+  </div><div class="simple-list"><table><thead><tr><th>السائق</th><th>الفاتورة</th><th>الفترة</th><th>التاريخ</th><th>الحالة</th><th></th></tr></thead><tbody id="deliveryBody"><tr><td colspan="6" class="empty">لا توجد عمليات توصيل</td></tr></tbody></table></div><div class="btnrow"><button id="deliveryExport" class="secondary" type="button">⬇ تحميل Excel</button></div></div>
+</section>
+
+<section id="feedbackPage" class="mini-page" aria-label="الملاحظات والمشاكل">
+  <div class="page-head"><div><h1>ملاحظات ومشاكل</h1><p>سجّل الملاحظة ثم نزّل ملف Excel لإرساله إلى المسؤول.</p></div><button class="home-back" type="button">الرئيسية</button></div>
+  <div class="step"><div class="form-stack"><div class="field"><label>الاسم</label><input id="feedbackName" type="text" placeholder="اسم المرسل"></div><div class="field"><label>النوع</label><select id="feedbackType"><option>ملاحظة</option><option>مشكلة</option><option>اقتراح</option></select></div><div class="field"><label>التفاصيل *</label><textarea id="feedbackText" placeholder="اكتب التفاصيل التي تريد إيصالها..."></textarea></div><div class="btnrow"><button id="feedbackExport" class="primary" type="button">تحميل ملف الملاحظة Excel</button></div></div></div>
+</section>
+
 <script>
 (function(){
   "use strict";
@@ -381,6 +436,7 @@
   const home = document.getElementById('home');
   const guideModal = document.getElementById('guideModal');
   function openApp(target){
+    document.querySelectorAll('.mini-page').forEach(page=>page.classList.remove('open'));
     document.body.classList.add('app-open');
     if(target){
       setTimeout(()=> document.getElementById(target).scrollIntoView({behavior:'smooth', block:'start'}), 50);
@@ -391,6 +447,10 @@
       const action = button.dataset.homeAction;
       if(action==='guide'){
         guideModal.classList.add('open');
+      }else if(['manual','delivery','feedback'].includes(action)){
+        document.body.classList.remove('app-open');
+        document.querySelectorAll('.mini-page').forEach(page=>page.classList.remove('open'));
+        document.getElementById(action+'Page').classList.add('open');
       }else{
         openApp('step1');
       }
@@ -402,6 +462,59 @@
   });
   document.addEventListener('keydown', event=>{
     if(event.key==='Escape') guideModal.classList.remove('open');
+  });
+  document.querySelectorAll('.home-back').forEach(button=>button.addEventListener('click', ()=>{
+    document.querySelectorAll('.mini-page').forEach(page=>page.classList.remove('open'));
+    document.body.classList.remove('app-open');
+  }));
+  document.getElementById('appHome').addEventListener('click', ()=>document.body.classList.remove('app-open'));
+
+  const manualRows = [];
+  function renderManualRows(){
+    const body = document.getElementById('manualBody');
+    body.innerHTML = manualRows.length ? manualRows.map((row,i)=>`<tr><td>${escapeHtml(row[0])}</td><td>${escapeHtml(row[1])}</td><td class="mono">${escapeHtml(row[2])}</td><td>${escapeHtml(row[3])}</td><td><button type="button" data-manual-delete="${i}">حذف</button></td></tr>`).join('') : '<tr><td colspan="5" class="empty">لم تتم إضافة أصناف بعد</td></tr>';
+    body.querySelectorAll('[data-manual-delete]').forEach(button=>button.addEventListener('click', ()=>{ manualRows.splice(Number(button.dataset.manualDelete),1); renderManualRows(); }));
+  }
+  document.getElementById('manualAdd').addEventListener('click', ()=>{
+    const number = document.getElementById('manualNumber').value.trim();
+    const name = document.getElementById('manualName').value.trim();
+    const qty = document.getElementById('manualQty').value;
+    const unit = document.getElementById('manualUnit').value.trim();
+    if(!name || qty===''){ alert('أدخل اسم الصنف والكمية المتاحة.'); return; }
+    manualRows.push([number,name,qty,unit]);
+    ['manualNumber','manualName','manualQty','manualUnit'].forEach(id=>document.getElementById(id).value='');
+    renderManualRows();
+  });
+  document.getElementById('useManualInventory').addEventListener('click', ()=>{
+    if(!manualRows.length){ alert('أضف صنفًا واحدًا على الأقل.'); return; }
+    invRaw = {headers:['Item number','Product name','Available physical','Unit'],rows:manualRows.slice()};
+    populateColSelects(invRaw.headers);
+    document.getElementById('colItemNum').value='0'; document.getElementById('colName').value='1'; document.getElementById('colQty').value='2'; document.getElementById('colUnit').value='3';
+    document.getElementById('invCols').style.display='block';
+    document.getElementById('invOk').style.display='block';
+    document.getElementById('invOk').innerHTML='<div class="fileok"><span>✓ مخزون مُدخل يدويًا — '+manualRows.length+' صنف</span></div>';
+    enableStep('step2'); checkReady(); openApp('step2');
+  });
+
+  const deliveries = [];
+  function renderDeliveries(){
+    const body=document.getElementById('deliveryBody');
+    body.innerHTML=deliveries.length ? deliveries.map((d,i)=>`<tr><td>${escapeHtml(d.driver)}</td><td>${escapeHtml(d.invoice)}</td><td>${d.period}</td><td class="mono">${d.date}</td><td>${d.status}</td><td><button class="row-delete" type="button" data-delivery-delete="${i}">حذف</button></td></tr>`).join('') : '<tr><td colspan="6" class="empty">لا توجد عمليات توصيل</td></tr>';
+    body.querySelectorAll('[data-delivery-delete]').forEach(b=>b.addEventListener('click',()=>{deliveries.splice(Number(b.dataset.deliveryDelete),1);renderDeliveries();}));
+  }
+  document.getElementById('deliveryDate').valueAsDate=new Date();
+  document.getElementById('deliveryAdd').addEventListener('click',()=>{
+    const driver=document.getElementById('driverName').value.trim(), invoice=document.getElementById('invoiceNo').value.trim();
+    if(!driver||!invoice){alert('أدخل اسم السائق ورقم الفاتورة.');return;}
+    deliveries.push({driver,invoice,period:document.getElementById('deliveryPeriod').value,date:document.getElementById('deliveryDate').value,status:document.getElementById('deliveryStatus').value});
+    document.getElementById('driverName').value='';document.getElementById('invoiceNo').value='';renderDeliveries();
+  });
+  function downloadSheet(filename, sheetName, rows){ const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(rows),sheetName);XLSX.writeFile(wb,filename); }
+  document.getElementById('deliveryExport').addEventListener('click',()=>downloadSheet('جدول_التوصيل.xlsx','التوصيل',[['اسم السائق','رقم الفاتورة','الفترة','التاريخ','الحالة'],...deliveries.map(d=>[d.driver,d.invoice,d.period,d.date,d.status])]));
+  document.getElementById('feedbackExport').addEventListener('click',()=>{
+    const detail=document.getElementById('feedbackText').value.trim();if(!detail){alert('اكتب تفاصيل الملاحظة أو المشكلة أولاً.');return;}
+    downloadSheet('ملاحظة_او_مشكلة.xlsx','الملاحظات',[['التاريخ','الاسم','النوع','التفاصيل'],[new Date().toLocaleString('ar-SA'),document.getElementById('feedbackName').value.trim(),document.getElementById('feedbackType').value,detail]]);
+    document.getElementById('feedbackText').value='';
   });
 
   // ---------- Arabic normalization ----------
@@ -420,6 +533,17 @@
     s = s.replace(/[^\u0621-\u064A0-9a-zA-Z\s]/g,' ');
     s = s.replace(/\s+/g,' ').trim().toLowerCase();
     return s;
+  }
+  // D365-style wildcard search: *فستق*براف* matches names containing both words.
+  function matchesSearch(value, query){
+    const parts = String(query||'').split('*').map(normalizeAr).filter(Boolean);
+    if(!parts.length) return true;
+    const haystack = normalizeAr(value);
+    return parts.every(part=>haystack.includes(part));
+  }
+  function searchInventory(query){
+    if(!query || !String(query).trim()) return [];
+    return inventory.map((item,idx)=>({idx,score:1})).filter(row=>matchesSearch(inventory[row.idx].name+' '+inventory[row.idx].itemNumber,query)).slice(0,30);
   }
   const UNIT_WORDS = new Set(['كرتون','كرتونه','كرتونة','كيلو','كجم','كغ','جم','جرام','غرام','لتر','مل','حبه','حبة','حبات','شد','عبوة','عبوه','قطعة','قطعه','قطع','كيس','جالون','علبة','علبه','علب','صندوق','سطل','تنك','تنكه','تنكة','باكت','ربطة','ربطه','ربطتين','دستة','دزينة','فرخ','رول','ك','غ','طن','شدة','شده','حبتين','صفيحة','صفيحه','قالب','بكت','دبة','دبه','كرت','او','ملي']);
   function tokenize(norm){ return norm.split(' ').filter(Boolean); }
@@ -481,7 +605,7 @@
     const sels = [
       {id:'colItemNum', kws:['رقم الصنف','item number','item code','sku','رقم','code','item']},
       {id:'colName', kws:['product name','اسم الصنف','الصنف','name','description','اسم','product']},
-      {id:'colQty', kws:['total available','الكمية المتاحة','available','qty','quantity','stock','متاح','كمية']},
+      {id:'colQty', kws:['available physical','total available','الكمية المتاحة','available','qty','quantity','stock','متاح','كمية']},
       {id:'colUnit', kws:['stock unit','الوحدة','unit']},
     ];
     sels.forEach(cfg=>{
@@ -646,7 +770,7 @@
     let shown = 0;
     results.forEach((r, i)=>{
       if(activeFilter!=='all' && r.status!==activeFilter) return;
-      if(qNorm && !normalizeAr(r.raw).includes(qNorm)) return;
+      if(qNorm && !matchesSearch(r.raw, q)) return;
       shown++;
       const tr = document.createElement('tr');
       const chosenIdx = r.chosenIdx;
@@ -664,17 +788,29 @@
         <td class="req-name">${escapeHtml(r.raw)}</td>
         <td class="req-qty">${escapeHtml(r.qtyDisplay)}</td>
         <td><span class="status-pill ${r.status}" data-statuscell>${badgeLabel(r.status)}</span></td>
-        <td><select class="matchsel" data-i="${i}">${selOptions}</select></td>
+        <td><input class="match-search" data-search-i="${i}" type="text" placeholder="ابحث عن منتج، مثال: *فستق*براف*"><select class="matchsel" data-i="${i}">${selOptions}</select></td>
         <td class="qtycell" data-qtycell>${inv? inv.qty : '-'}</td>
         <td data-unitcell>${inv? (inv.unit||'-') : '-'}</td>
         <td class="confcell" data-confcell>${chosenIdx>=0? Math.round(chosenScore*100)+'%':'-'}</td>
+        <td><button class="row-delete" type="button" data-delete-i="${i}">حذف</button></td>
       `;
       tbody.appendChild(tr);
     });
     if(shown===0){
-      tbody.innerHTML = `<tr><td colspan="8"><div class="empty">لا توجد نتائج مطابقة للفلتر الحالي</div></td></tr>`;
+      tbody.innerHTML = `<tr><td colspan="9"><div class="empty">لا توجد نتائج مطابقة للفلتر الحالي</div></td></tr>`;
     }
     // bind manual override
+    tbody.querySelectorAll('input.match-search').forEach(input=>{
+      input.addEventListener('change', e=>{
+        const i=Number(e.target.dataset.searchI), found=searchInventory(e.target.value);
+        if(!found.length){ alert('لم يتم العثور على منتجات مطابقة.'); return; }
+        results[i].candidates=[...found,...results[i].candidates.filter(old=>!found.some(f=>f.idx===old.idx))].slice(0,30);
+        renderResults();
+      });
+    });
+    tbody.querySelectorAll('[data-delete-i]').forEach(button=>button.addEventListener('click',()=>{
+      const i=Number(button.dataset.deleteI); results.splice(i,1); wantedLines.splice(i,1); renderSummary(); renderResults();
+    }));
     tbody.querySelectorAll('select.matchsel').forEach(sel=>{
       sel.addEventListener('change', e=>{
         const i = parseInt(e.target.dataset.i);
@@ -684,7 +820,8 @@
         results[i].chosenIdx = val;
         const tr = e.target.closest('tr');
         const inv = val>=0 ? inventory[val] : null;
-        const newStatus = val<0 ? 'notfound' : statusFromScore(score);
+        // A product picked explicitly by the user is confirmed as available.
+        const newStatus = val<0 ? 'notfound' : 'found';
         results[i].status = newStatus;
         tr.querySelector('[data-statuscell]').className = 'status-pill '+newStatus;
         tr.querySelector('[data-statuscell]').textContent = badgeLabel(newStatus);
@@ -897,6 +1034,13 @@
     });
   });
   document.getElementById('exportBtn').addEventListener('click', exportExcel);
+  document.getElementById('addRowBtn').addEventListener('click', ()=>{
+    if(!inventory.length){ alert('ارفع أو أدخل ملف المخزون أولاً.'); return; }
+    const name=prompt('اكتب اسم الصنف المطلوب. يمكنك استخدام البحث مثل: *فستق*براف*');
+    if(!name || !name.trim()) return;
+    wantedLines.push(name.trim());
+    runMatching(); renderSummary(); renderResults();
+  });
 
 })();
 </script>
