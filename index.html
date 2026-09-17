@@ -1,0 +1,807 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<title>مطابقة الأصناف</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;900&family=IBM+Plex+Mono:wght@500&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+  :root{
+    --bg:#F1F3EF;
+    --panel:#FFFFFF;
+    --ink:#16241F;
+    --ink-soft:#4B5D55;
+    --line:#D8DED7;
+    --primary:#1F4A3D;
+    --primary-ink:#FFFFFF;
+    --accent:#C98A2E;
+    --found-bg:#E3F1E4;
+    --found-ink:#1E6B37;
+    --partial-bg:#FBF0DA;
+    --partial-ink:#8A5A12;
+    --notfound-bg:#FBE7E5;
+    --notfound-ink:#A3382C;
+    --chip-bg:#EAEFE9;
+    --shadow: 0 1px 2px rgba(20,30,25,.06);
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --bg:#121815;
+      --panel:#1A2320;
+      --ink:#EDF2EE;
+      --ink-soft:#A9B6AE;
+      --line:#2C3A34;
+      --primary:#5CA98A;
+      --primary-ink:#0D1512;
+      --accent:#E3A94F;
+      --found-bg:#173626;
+      --found-ink:#7FDB9A;
+      --partial-bg:#3A2E13;
+      --partial-ink:#F0C36B;
+      --notfound-bg:#3A1D1A;
+      --notfound-ink:#F1958A;
+      --chip-bg:#212B26;
+      --shadow: 0 1px 2px rgba(0,0,0,.4);
+    }
+  }
+  :root[data-theme="dark"]{
+    --bg:#121815; --panel:#1A2320; --ink:#EDF2EE; --ink-soft:#A9B6AE; --line:#2C3A34;
+    --primary:#5CA98A; --primary-ink:#0D1512; --accent:#E3A94F;
+    --found-bg:#173626; --found-ink:#7FDB9A; --partial-bg:#3A2E13; --partial-ink:#F0C36B;
+    --notfound-bg:#3A1D1A; --notfound-ink:#F1958A; --chip-bg:#212B26;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:var(--bg); color:var(--ink);
+    font-family:'Tajawal',sans-serif;
+    line-height:1.55;
+    min-height:100vh;
+    padding:28px 16px 80px;
+  }
+  .wrap{max-width:1180px;margin:0 auto;}
+  .mono{font-family:'IBM Plex Mono',monospace;}
+
+  header.top{
+    display:flex; align-items:baseline; justify-content:space-between;
+    border-bottom:3px solid var(--primary);
+    padding-bottom:14px; margin-bottom:26px; gap:12px; flex-wrap:wrap;
+  }
+  header.top h1{font-size:22px; margin:0; font-weight:900; letter-spacing:.2px;}
+  header.top .tagline{color:var(--ink-soft); font-size:13.5px; margin-top:4px;}
+  header.top .badge{
+    background:var(--chip-bg); color:var(--ink-soft); font-size:12px;
+    padding:5px 10px; border-radius:20px; white-space:nowrap;
+  }
+
+  .step{
+    background:var(--panel); border:1px solid var(--line); border-radius:10px;
+    padding:20px 22px; margin-bottom:18px; box-shadow:var(--shadow);
+  }
+  .step.disabled{opacity:.5; pointer-events:none;}
+  .step h2{
+    font-size:15.5px; margin:0 0 14px; display:flex; align-items:center; gap:10px;
+  }
+  .step h2 .num{
+    background:var(--primary); color:var(--primary-ink); border-radius:50%;
+    width:24px; height:24px; display:flex; align-items:center; justify-content:center;
+    font-size:12.5px; font-weight:700; flex:none;
+  }
+  .step p.hint{color:var(--ink-soft); font-size:13px; margin:-6px 0 14px 34px;}
+
+  .drop{
+    border:1.5px dashed var(--line); border-radius:8px; padding:22px;
+    text-align:center; cursor:pointer; transition:.15s; background:var(--bg);
+  }
+  .drop:hover, .drop.drag{border-color:var(--primary); background:var(--found-bg);}
+  .drop input{display:none;}
+  .drop .ic{font-size:22px; margin-bottom:6px;}
+  .drop .main{font-size:13.5px; font-weight:700;}
+  .drop .sub{font-size:12px; color:var(--ink-soft); margin-top:3px;}
+  .fileok{
+    display:flex; align-items:center; justify-content:space-between; gap:10px;
+    background:var(--found-bg); color:var(--found-ink); border-radius:8px;
+    padding:10px 14px; font-size:13.5px; font-weight:700;
+  }
+  .fileok button{background:none;border:none;color:inherit;cursor:pointer;font-size:12px;text-decoration:underline;font-family:inherit;}
+
+  .cols{display:grid; grid-template-columns:repeat(4,1fr); gap:12px; margin-top:14px;}
+  @media (max-width:820px){.cols{grid-template-columns:repeat(2,1fr);}}
+  .field label{display:block; font-size:12px; color:var(--ink-soft); margin-bottom:5px; font-weight:700;}
+  select, textarea, input[type=text]{
+    width:100%; border:1px solid var(--line); border-radius:7px; background:var(--panel);
+    color:var(--ink); padding:8px 10px; font-family:inherit; font-size:13.5px;
+  }
+  select:focus, textarea:focus, input:focus{outline:2px solid var(--primary); outline-offset:1px;}
+
+  .tabs{display:flex; gap:6px; margin-bottom:12px;}
+  .tab{
+    padding:7px 14px; border-radius:7px; font-size:13px; font-weight:700; cursor:pointer;
+    background:var(--chip-bg); color:var(--ink-soft); border:1px solid transparent;
+  }
+  .tab.active{background:var(--primary); color:var(--primary-ink);}
+
+  textarea#pasteArea{min-height:150px; resize:vertical; font-family:'IBM Plex Mono',monospace; font-size:13px;}
+
+  .btnrow{display:flex; gap:10px; margin-top:16px; flex-wrap:wrap; align-items:center;}
+  button.primary{
+    background:var(--primary); color:var(--primary-ink); border:none; border-radius:7px;
+    padding:11px 22px; font-size:14.5px; font-weight:700; cursor:pointer; font-family:inherit;
+  }
+  button.primary:disabled{opacity:.4; cursor:not-allowed;}
+  button.secondary{
+    background:none; border:1px solid var(--line); color:var(--ink); border-radius:7px;
+    padding:10px 18px; font-size:13.5px; font-weight:700; cursor:pointer; font-family:inherit;
+  }
+  button.ghost{background:none;border:none;color:var(--primary);font-weight:700;font-size:12.5px;cursor:pointer;font-family:inherit;text-decoration:underline;padding:2px;}
+
+  .summary{display:flex; gap:10px; flex-wrap:wrap; margin:6px 0 18px;}
+  .stat{
+    flex:1; min-width:120px; background:var(--panel); border:1px solid var(--line); border-radius:9px;
+    padding:14px 16px; box-shadow:var(--shadow);
+  }
+  .stat .n{font-size:24px; font-weight:900; font-family:'IBM Plex Mono',monospace;}
+  .stat .l{font-size:12px; color:var(--ink-soft); margin-top:2px;}
+  .stat.found .n{color:var(--found-ink);}
+  .stat.partial .n{color:var(--partial-ink);}
+  .stat.notfound .n{color:var(--notfound-ink);}
+
+  .toolbar{display:flex; justify-content:space-between; align-items:center; gap:12px; margin-bottom:10px; flex-wrap:wrap;}
+  .filterchips{display:flex; gap:6px; flex-wrap:wrap;}
+  .fchip{
+    padding:5px 12px; border-radius:20px; font-size:12.5px; font-weight:700; cursor:pointer;
+    border:1px solid var(--line); background:var(--panel); color:var(--ink-soft);
+  }
+  .fchip.on{border-color:transparent;}
+  .fchip[data-k="all"].on{background:var(--primary); color:var(--primary-ink);}
+  .fchip[data-k="found"].on{background:var(--found-bg); color:var(--found-ink);}
+  .fchip[data-k="partial"].on{background:var(--partial-bg); color:var(--partial-ink);}
+  .fchip[data-k="notfound"].on{background:var(--notfound-bg); color:var(--notfound-ink);}
+  input#search{max-width:220px;}
+
+  table{width:100%; border-collapse:collapse; font-size:13px;}
+  thead th{
+    text-align:right; font-size:11.5px; color:var(--ink-soft); font-weight:700;
+    border-bottom:2px solid var(--line); padding:8px 8px; white-space:nowrap;
+  }
+  tbody tr{border-bottom:1px solid var(--line);}
+  tbody tr:hover{background:var(--chip-bg);}
+  tbody td{padding:9px 8px; vertical-align:top;}
+  .req-name{font-weight:700;}
+  .req-qty{color:var(--ink-soft); font-size:12px;}
+  .status-pill{
+    display:inline-block; padding:3px 10px; border-radius:20px; font-size:11.5px; font-weight:700; white-space:nowrap;
+  }
+  .status-pill.found{background:var(--found-bg); color:var(--found-ink);}
+  .status-pill.partial{background:var(--partial-bg); color:var(--partial-ink);}
+  .status-pill.notfound{background:var(--notfound-bg); color:var(--notfound-ink);}
+  select.matchsel{font-size:12.5px; padding:6px 8px; min-width:230px;}
+  .qtycell{font-family:'IBM Plex Mono',monospace; font-weight:700;}
+  .confcell{color:var(--ink-soft); font-size:11.5px;}
+  .tablewrap{overflow-x:auto; border-radius:8px;}
+
+  .footnote{color:var(--ink-soft); font-size:12px; margin-top:10px;}
+  .empty{text-align:center; padding:50px 20px; color:var(--ink-soft);}
+  .spin{
+    width:16px;height:16px;border-radius:50%;border:2.5px solid var(--chip-bg);
+    border-top-color:var(--primary); animation:sp .7s linear infinite; display:inline-block; vertical-align:middle;
+  }
+  @keyframes sp{to{transform:rotate(360deg);}}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="top">
+    <div>
+      <h1>مطابقة الأصناف بالمخزون</h1>
+      <div class="tagline">ارفع ملف المنتجات المتوفرة عندك، وقائمة الأصناف يلي بدك تطلبها، وطلع لك تقرير مطابقة فوري</div>
+    </div>
+    <div class="badge">يشتغل بالكامل بمتصفحك — لا يتم رفع ملفاتك لأي سيرفر</div>
+  </header>
+
+  <!-- STEP 1: inventory upload -->
+  <div class="step" id="step1">
+    <h2><span class="num">1</span> ملف المنتجات المتوفرة عندك (المخزون)</h2>
+    <p class="hint">إكسل أو CSV — لازم يحتوي عمود لرقم الصنف، اسم الصنف، والكمية المتاحة</p>
+    <div class="drop" id="dropInv">
+      <input type="file" id="fileInv" accept=".xlsx,.xls,.csv">
+      <div class="ic">📦</div>
+      <div class="main">اسحب الملف هنا أو اضغط للاختيار</div>
+      <div class="sub">xlsx / xls / csv</div>
+    </div>
+    <div id="invOk" style="display:none;margin-top:10px;"></div>
+
+    <div id="invCols" style="display:none;">
+      <div class="cols">
+        <div class="field">
+          <label>عمود رقم الصنف</label>
+          <select id="colItemNum"></select>
+        </div>
+        <div class="field">
+          <label>عمود اسم الصنف</label>
+          <select id="colName"></select>
+        </div>
+        <div class="field">
+          <label>عمود الكمية المتاحة</label>
+          <select id="colQty"></select>
+        </div>
+        <div class="field">
+          <label>عمود الوحدة (اختياري)</label>
+          <select id="colUnit"></select>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- STEP 2: wanted list -->
+  <div class="step disabled" id="step2">
+    <h2><span class="num">2</span> الأصناف يلي بدك تطلبها</h2>
+    <div class="tabs">
+      <div class="tab active" data-mode="paste">لصق قائمة</div>
+      <div class="tab" data-mode="file">رفع ملف</div>
+    </div>
+    <div id="pasteMode">
+      <textarea id="pasteArea" placeholder="اكتب أو الصق صنف بكل سطر، مثال:&#10;شوكولاته داكنه 40 كيلو&#10;بيض 2 كرتون&#10;جبنة فيلادلفيا 5 كرتون"></textarea>
+    </div>
+    <div id="fileMode" style="display:none;">
+      <div class="drop" id="dropWanted">
+        <input type="file" id="fileWanted" accept=".xlsx,.xls,.csv,.txt">
+        <div class="ic">📝</div>
+        <div class="main">اسحب ملف قائمة الطلبات هنا أو اضغط للاختيار</div>
+        <div class="sub">xlsx / csv / txt — أول عمود بيتم اعتباره اسم الصنف</div>
+      </div>
+      <div id="wantedOk" style="display:none;margin-top:10px;"></div>
+    </div>
+    <div class="btnrow">
+      <button class="primary" id="runBtn" disabled>قارن الآن</button>
+      <span id="runStatus" style="font-size:12.5px;color:var(--ink-soft);"></span>
+    </div>
+  </div>
+
+  <!-- STEP 3: results -->
+  <div class="step disabled" id="step3">
+    <h2><span class="num">3</span> نتيجة المطابقة</h2>
+
+    <div class="summary" id="summary"></div>
+
+    <div class="toolbar">
+      <div class="filterchips" id="filterChips">
+        <div class="fchip on" data-k="all">الكل</div>
+        <div class="fchip" data-k="found">متوفر</div>
+        <div class="fchip" data-k="partial">يحتاج تأكيد</div>
+        <div class="fchip" data-k="notfound">غير موجود</div>
+      </div>
+      <div style="display:flex;gap:8px;align-items:center;">
+        <input type="text" id="search" placeholder="بحث بالنتائج...">
+        <button class="secondary" id="exportBtn">⬇ تحميل اكسل</button>
+      </div>
+    </div>
+
+    <div class="tablewrap">
+      <table>
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>الصنف المطلوب</th>
+            <th>الكمية المطلوبة</th>
+            <th>الحالة</th>
+            <th>أقرب صنف بالمخزون</th>
+            <th>الكمية المتاحة</th>
+            <th>الوحدة</th>
+            <th>الثقة</th>
+          </tr>
+        </thead>
+        <tbody id="resultsBody"></tbody>
+      </table>
+    </div>
+    <div class="footnote">المطابقة تلقائية بالاعتماد على تشابه الأسماء — تقدر تغيّر أي نتيجة يدوياً من القائمة المنسدلة بعمود "أقرب صنف بالمخزون" قبل ما تحمّل الملف. عند تعدد الاحتمالات المتقاربة، يتم اختيار الصنف صاحب الكمية الأعلى تلقائياً.</div>
+  </div>
+
+</div>
+
+<script>
+(function(){
+  "use strict";
+
+  // ---------- Arabic normalization ----------
+  const AR_DIGITS = '٠١٢٣٤٥٦٧٨٩';
+  function normalizeAr(s){
+    if(s===null||s===undefined) return '';
+    s = String(s);
+    s = s.replace(/[\u064B-\u065F\u0670\u06D6-\u06ED]/g,'');
+    s = s.replace(/\u0640/g,'');
+    s = s.replace(/[إأآا]/g,'ا');
+    s = s.replace(/ى/g,'ي');
+    s = s.replace(/ة/g,'ه');
+    s = s.replace(/ؤ/g,'و');
+    s = s.replace(/ئ/g,'ي');
+    s = s.replace(/[٠-٩]/g, d => String(AR_DIGITS.indexOf(d)));
+    s = s.replace(/[^\u0621-\u064A0-9a-zA-Z\s]/g,' ');
+    s = s.replace(/\s+/g,' ').trim().toLowerCase();
+    return s;
+  }
+  const UNIT_WORDS = new Set(['كرتون','كرتونه','كرتونة','كيلو','كجم','كغ','جم','جرام','غرام','لتر','مل','حبه','حبة','حبات','شد','عبوة','عبوه','قطعة','قطعه','قطع','كيس','جالون','علبة','علبه','علب','صندوق','سطل','تنك','تنكه','تنكة','باكت','ربطة','ربطه','ربطتين','دستة','دزينة','فرخ','رول','ك','غ','طن','شدة','شده','حبتين','صفيحة','صفيحه','قالب','بكت','دبة','دبه','كرت','او','ملي']);
+  function tokenize(norm){ return norm.split(' ').filter(Boolean); }
+  function coreTokens(tokens){ return tokens.filter(t=> !UNIT_WORDS.has(t) && !/^\d+$/.test(t)); }
+  function bigrams(s){
+    s = s.replace(/\s+/g,'');
+    const g = new Set();
+    for(let i=0;i<s.length-1;i++) g.add(s.substr(i,2));
+    if(g.size===0 && s.length===1) g.add(s);
+    return g;
+  }
+  function diceSim(a,b){
+    if(a.size===0 && b.size===0) return 0;
+    let inter=0;
+    for(const x of a) if(b.has(x)) inter++;
+    return 2*inter/(a.size+b.size || 1);
+  }
+
+  // ---------- state ----------
+  let invRaw = null;      // {headers:[], rows:[[...]]}
+  let inventory = [];     // processed {itemNumber,name,qty,unit,normName,coreSet,coreStr,bigramSet}
+  let invIndex = new Map(); // token -> Set(idx)
+  let wantedLines = [];   // raw strings
+  let results = [];       // per request result objects
+  let activeFilter = 'all';
+
+  // ---------- file reading ----------
+  function readFileAsWorkbook(file){
+    return new Promise((resolve,reject)=>{
+      const reader = new FileReader();
+      reader.onload = e => {
+        try{
+          const data = new Uint8Array(e.target.result);
+          const wb = XLSX.read(data, {type:'array'});
+          resolve(wb);
+        }catch(err){ reject(err); }
+      };
+      reader.onerror = reject;
+      reader.readAsArrayBuffer(file);
+    });
+  }
+  function sheetToAOA(wb){
+    const sheet = wb.Sheets[wb.SheetNames[0]];
+    return XLSX.utils.sheet_to_json(sheet, {header:1, raw:true, defval:''});
+  }
+
+  function guessColumn(headers, keywords){
+    let best=-1, bestScore=0;
+    headers.forEach((h,i)=>{
+      const hn = String(h||'').toLowerCase();
+      keywords.forEach(k=>{
+        if(hn.includes(k) && k.length>bestScore){ bestScore=k.length; best=i; }
+      });
+    });
+    return best;
+  }
+
+  function populateColSelects(headers){
+    const sels = [
+      {id:'colItemNum', kws:['رقم الصنف','item number','item code','sku','رقم','code','item']},
+      {id:'colName', kws:['product name','اسم الصنف','الصنف','name','description','اسم','product']},
+      {id:'colQty', kws:['total available','الكمية المتاحة','available','qty','quantity','stock','متاح','كمية']},
+      {id:'colUnit', kws:['stock unit','الوحدة','unit']},
+    ];
+    sels.forEach(cfg=>{
+      const sel = document.getElementById(cfg.id);
+      sel.innerHTML = '';
+      if(cfg.id==='colUnit'){
+        const opt = document.createElement('option');
+        opt.value = '-1'; opt.textContent='(بدون)';
+        sel.appendChild(opt);
+      }
+      headers.forEach((h,i)=>{
+        const opt = document.createElement('option');
+        opt.value = i;
+        opt.textContent = h || ('عمود '+(i+1));
+        sel.appendChild(opt);
+      });
+      const guess = guessColumn(headers, cfg.kws);
+      if(guess>=0) sel.value = guess;
+    });
+  }
+
+  function buildInventory(){
+    const headers = invRaw.headers;
+    const iNum = parseInt(document.getElementById('colItemNum').value);
+    const iName = parseInt(document.getElementById('colName').value);
+    const iQty = parseInt(document.getElementById('colQty').value);
+    const iUnitSel = document.getElementById('colUnit').value;
+    const iUnit = iUnitSel==='-1' ? -1 : parseInt(iUnitSel);
+
+    inventory = [];
+    invIndex = new Map();
+    invRaw.rows.forEach(row=>{
+      const name = row[iName];
+      if(name===undefined || name===null || String(name).trim()==='') return;
+      const itemNumber = iNum>=0 ? row[iNum] : '';
+      let qty = iQty>=0 ? row[iQty] : 0;
+      qty = parseFloat(qty);
+      if(isNaN(qty)) qty = 0;
+      const unit = iUnit>=0 ? row[iUnit] : '';
+      const normName = normalizeAr(name);
+      const tokens = tokenize(normName);
+      const core = coreTokens(tokens);
+      const coreStr = core.join('');
+      const coreSet = new Set(core);
+      const bigramSet = bigrams(coreStr || normName);
+      const idx = inventory.length;
+      inventory.push({itemNumber, name, qty, unit, normName, coreSet, coreStr, bigramSet});
+      core.forEach(t=>{
+        if(!invIndex.has(t)) invIndex.set(t, new Set());
+        invIndex.get(t).add(idx);
+      });
+    });
+  }
+
+  // ---------- matching ----------
+  function findMatches(reqCore, reqCoreStr, reqBigrams){
+    let candidateIdx = new Set();
+    reqCore.forEach(t=>{
+      const s = invIndex.get(t);
+      if(s) s.forEach(i=>candidateIdx.add(i));
+    });
+    if(candidateIdx.size===0 && reqCoreStr){
+      inventory.forEach((inv,i)=>{
+        if(inv.coreStr && (inv.coreStr.includes(reqCoreStr) || reqCoreStr.includes(inv.coreStr))){
+          candidateIdx.add(i);
+        }
+      });
+    }
+    const scored = [];
+    candidateIdx.forEach(idx=>{
+      const inv = inventory[idx];
+      const tokenOverlap = reqCore.length ? reqCore.filter(t=>inv.coreSet.has(t)).length / reqCore.length : 0;
+      const bigramScore = diceSim(reqBigrams, inv.bigramSet);
+      let score = 0.65*tokenOverlap + 0.35*bigramScore;
+      if(reqCoreStr && inv.coreStr.includes(reqCoreStr)) score = Math.min(1, score+0.15);
+      scored.push({idx, score});
+    });
+    scored.sort((a,b)=> b.score-a.score);
+    return scored;
+  }
+
+  function statusFromScore(score){
+    if(score>=0.55) return 'found';
+    if(score>=0.28) return 'partial';
+    return 'notfound';
+  }
+
+  function extractQtyDisplay(tokensOriginal, tokensNorm){
+    // pick tokens (from original casing split) whose normalized counterpart is unit/number
+    const out = [];
+    tokensOriginal.forEach((raw,i)=>{
+      const n = tokensNorm[i];
+      if(n!==undefined && (UNIT_WORDS.has(n) || /^\d+$/.test(n))) out.push(raw);
+    });
+    return out.length ? out.join(' ') : '-';
+  }
+
+  function runMatching(){
+    results = wantedLines.map((line, i)=>{
+      const raw = line.trim();
+      const norm = normalizeAr(raw);
+      const tokensNorm = tokenize(norm);
+      const tokensOriginal = raw.split(/\s+/).filter(Boolean);
+      const core = coreTokens(tokensNorm);
+      const coreStr = core.join('');
+      const reqBigrams = bigrams(coreStr);
+      const qtyDisplay = extractQtyDisplay(tokensOriginal, tokensNorm);
+
+      const scored = findMatches(core, coreStr, reqBigrams);
+      let candidates = scored.slice(0,6);
+      let chosenIdxInScored = 0;
+      let status = 'notfound';
+
+      if(scored.length>0){
+        const topScore = scored[0].score;
+        const close = scored.filter(s=> s.score >= Math.max(topScore-0.12, 0) && s.score>=0.2);
+        close.sort((a,b)=> (inventory[b.idx].qty||0) - (inventory[a.idx].qty||0));
+        const bestPick = close[0] || scored[0];
+        chosenIdxInScored = scored.findIndex(s=>s.idx===bestPick.idx);
+        if(chosenIdxInScored<0) chosenIdxInScored = 0;
+        status = statusFromScore(scored[chosenIdxInScored].score);
+        // reorder candidates so chosen one is first
+        candidates = [scored[chosenIdxInScored], ...scored.filter((s,ix)=>ix!==chosenIdxInScored)].slice(0,6);
+      }
+
+      return {
+        id:i, raw, qtyDisplay, status,
+        candidates, // array of {idx, score}
+        chosenIdx: candidates.length ? candidates[0].idx : -1
+      };
+    });
+  }
+
+  // ---------- rendering ----------
+  function badgeLabel(st){
+    return st==='found' ? 'متوفر' : st==='partial' ? 'يحتاج تأكيد' : 'غير موجود';
+  }
+
+  function renderSummary(){
+    const c = {found:0,partial:0,notfound:0};
+    results.forEach(r=> c[r.status]++);
+    document.getElementById('summary').innerHTML = `
+      <div class="stat"><div class="n">${results.length}</div><div class="l">إجمالي الأصناف المطلوبة</div></div>
+      <div class="stat found"><div class="n">${c.found}</div><div class="l">متوفرة</div></div>
+      <div class="stat partial"><div class="n">${c.partial}</div><div class="l">تحتاج تأكيد</div></div>
+      <div class="stat notfound"><div class="n">${c.notfound}</div><div class="l">غير موجودة</div></div>
+    `;
+  }
+
+  function matchLabel(idx, score){
+    if(idx<0) return '— غير موجود —';
+    const inv = inventory[idx];
+    const pct = Math.round(score*100);
+    return `${inv.name}  ·  ${inv.itemNumber||'-'}  ·  ${inv.qty} ${inv.unit||''}  (${pct}%)`;
+  }
+
+  function renderResults(){
+    const tbody = document.getElementById('resultsBody');
+    const q = document.getElementById('search').value.trim();
+    const qNorm = normalizeAr(q);
+    tbody.innerHTML = '';
+    let shown = 0;
+    results.forEach((r, i)=>{
+      if(activeFilter!=='all' && r.status!==activeFilter) return;
+      if(qNorm && !normalizeAr(r.raw).includes(qNorm)) return;
+      shown++;
+      const tr = document.createElement('tr');
+      const chosenIdx = r.chosenIdx;
+      const chosenScore = r.candidates.length ? (r.candidates.find(c=>c.idx===chosenIdx)?.score ?? r.candidates[0].score) : 0;
+      const inv = chosenIdx>=0 ? inventory[chosenIdx] : null;
+
+      let selOptions = `<option value="-1" ${chosenIdx<0?'selected':''}>— غير موجود —</option>`;
+      r.candidates.forEach(c=>{
+        const invc = inventory[c.idx];
+        selOptions += `<option value="${c.idx}" data-score="${c.score}" ${c.idx===chosenIdx?'selected':''}>${invc.name} · ${invc.itemNumber||'-'} · ${invc.qty}${invc.unit? ' '+invc.unit:''} (${Math.round(c.score*100)}%)</option>`;
+      });
+
+      tr.innerHTML = `
+        <td class="mono" style="color:var(--ink-soft)">${i+1}</td>
+        <td class="req-name">${escapeHtml(r.raw)}</td>
+        <td class="req-qty">${escapeHtml(r.qtyDisplay)}</td>
+        <td><span class="status-pill ${r.status}" data-statuscell>${badgeLabel(r.status)}</span></td>
+        <td><select class="matchsel" data-i="${i}">${selOptions}</select></td>
+        <td class="qtycell" data-qtycell>${inv? inv.qty : '-'}</td>
+        <td data-unitcell>${inv? (inv.unit||'-') : '-'}</td>
+        <td class="confcell" data-confcell>${chosenIdx>=0? Math.round(chosenScore*100)+'%':'-'}</td>
+      `;
+      tbody.appendChild(tr);
+    });
+    if(shown===0){
+      tbody.innerHTML = `<tr><td colspan="8"><div class="empty">لا توجد نتائج مطابقة للفلتر الحالي</div></td></tr>`;
+    }
+    // bind manual override
+    tbody.querySelectorAll('select.matchsel').forEach(sel=>{
+      sel.addEventListener('change', e=>{
+        const i = parseInt(e.target.dataset.i);
+        const val = parseInt(e.target.value);
+        const opt = e.target.selectedOptions[0];
+        const score = val>=0 ? parseFloat(opt.dataset.score||'0') : 0;
+        results[i].chosenIdx = val;
+        const tr = e.target.closest('tr');
+        const inv = val>=0 ? inventory[val] : null;
+        const newStatus = val<0 ? 'notfound' : statusFromScore(score);
+        results[i].status = newStatus;
+        tr.querySelector('[data-statuscell]').className = 'status-pill '+newStatus;
+        tr.querySelector('[data-statuscell]').textContent = badgeLabel(newStatus);
+        tr.querySelector('[data-qtycell]').textContent = inv? inv.qty : '-';
+        tr.querySelector('[data-unitcell]').textContent = inv? (inv.unit||'-') : '-';
+        tr.querySelector('[data-confcell]').textContent = val>=0? Math.round(score*100)+'%':'-';
+        renderSummary();
+      });
+    });
+  }
+
+  function escapeHtml(s){
+    return String(s).replace(/[&<>"']/g, c=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]));
+  }
+
+  // ---------- export ----------
+  async function exportExcel(){
+    const btn = document.getElementById('exportBtn');
+    const oldText = btn.textContent;
+    btn.textContent = '...جاري التجهيز';
+    btn.disabled = true;
+    try{
+      const aoa = [['#','الصنف المطلوب','الكمية المطلوبة','الحالة','رقم الصنف','أقرب صنف بالمخزون','الكمية المتاحة','الوحدة']];
+      results.forEach((r,i)=>{
+        const inv = r.chosenIdx>=0 ? inventory[r.chosenIdx] : null;
+        aoa.push([
+          i+1, r.raw, r.qtyDisplay, badgeLabel(r.status),
+          inv? inv.itemNumber : '-',
+          inv? inv.name : '-',
+          inv? inv.qty : '-',
+          inv? (inv.unit||'-') : '-'
+        ]);
+      });
+      const wb = XLSX.utils.book_new();
+      const ws = XLSX.utils.aoa_to_sheet(aoa);
+      ws['!cols'] = [{wch:5},{wch:30},{wch:16},{wch:16},{wch:12},{wch:40},{wch:14},{wch:10}];
+      XLSX.utils.book_append_sheet(wb, ws, 'نتيجة المطابقة');
+      const out = XLSX.write(wb, {bookType:'xlsx', type:'array'});
+      const blob = new Blob([out], {type:'application/octet-stream'});
+
+      // Inside claude.ai artifacts: use the downloads capability.
+      // On a standalone host (GitHub Pages / Cloudflare Pages / any normal
+      // browser), window.claude doesn't exist, so fall back to a plain
+      // browser download link.
+      if(typeof claude !== 'undefined' && claude && claude.use){
+        const downloads = await claude.use('downloads');
+        if(downloads){
+          await downloads.save({filename:'نتيجة_المطابقة.xlsx', data: blob});
+          return;
+        }
+      }
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'نتيجة_المطابقة.xlsx';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      setTimeout(()=> URL.revokeObjectURL(url), 2000);
+    }catch(err){
+      if(err && err.code === 'declined'){
+        // user cancelled, no need to alert
+      } else {
+        console.error(err);
+        alert('صار خطأ أثناء تجهيز الملف. جرّب مرة ثانية.');
+      }
+    } finally {
+      btn.textContent = oldText;
+      btn.disabled = false;
+    }
+  }
+
+  // ---------- UI wiring ----------
+  function setupDrop(dropEl, inputEl, onFile){
+    dropEl.addEventListener('click', ()=> inputEl.click());
+    inputEl.addEventListener('change', e=>{
+      if(e.target.files[0]) onFile(e.target.files[0]);
+    });
+    ['dragover','dragenter'].forEach(ev=> dropEl.addEventListener(ev, e=>{ e.preventDefault(); dropEl.classList.add('drag'); }));
+    ['dragleave','drop'].forEach(ev=> dropEl.addEventListener(ev, e=>{ e.preventDefault(); dropEl.classList.remove('drag'); }));
+    dropEl.addEventListener('drop', e=>{
+      if(e.dataTransfer.files[0]) onFile(e.dataTransfer.files[0]);
+    });
+  }
+
+  function enableStep(id){
+    document.getElementById(id).classList.remove('disabled');
+  }
+
+  async function handleInventoryFile(file){
+    try{
+      const wb = await readFileAsWorkbook(file);
+      const aoa = sheetToAOA(wb);
+      if(!aoa.length){ alert('الملف فارغ'); return; }
+      const headers = aoa[0].map(h=>String(h||'').trim());
+      const rows = aoa.slice(1);
+      invRaw = {headers, rows};
+      document.getElementById('invOk').style.display='block';
+      document.getElementById('invOk').innerHTML = `<div class="fileok"><span>✓ ${escapeHtml(file.name)} — ${rows.length} صف</span><button id="chInv">تغيير</button></div>`;
+      document.getElementById('chInv').addEventListener('click', ()=>{
+        document.getElementById('fileInv').value='';
+        document.getElementById('invOk').style.display='none';
+        document.getElementById('invCols').style.display='none';
+        invRaw = null;
+        checkReady();
+      });
+      document.getElementById('invCols').style.display='block';
+      populateColSelects(headers);
+      checkReady();
+    }catch(err){
+      console.error(err);
+      alert('ما قدرت أقرأ الملف. تأكد إنه ملف إكسل أو CSV صحيح.');
+    }
+  }
+
+  async function handleWantedFile(file){
+    try{
+      let lines = [];
+      if(/\.txt$/i.test(file.name)){
+        const text = await file.text();
+        lines = text.split(/\r?\n/).map(l=>l.trim()).filter(Boolean);
+      } else {
+        const wb = await readFileAsWorkbook(file);
+        const aoa = sheetToAOA(wb);
+        aoa.forEach(row=>{
+          const v = row[0];
+          if(v!==undefined && v!==null && String(v).trim()!=='') lines.push(String(v).trim());
+        });
+      }
+      wantedLines = lines;
+      document.getElementById('wantedOk').style.display='block';
+      document.getElementById('wantedOk').innerHTML = `<div class="fileok"><span>✓ ${escapeHtml(file.name)} — ${lines.length} صنف</span><button id="chWanted">تغيير</button></div>`;
+      document.getElementById('chWanted').addEventListener('click', ()=>{
+        document.getElementById('fileWanted').value='';
+        document.getElementById('wantedOk').style.display='none';
+        wantedLines = [];
+        checkReady();
+      });
+      checkReady();
+    }catch(err){
+      console.error(err);
+      alert('ما قدرت أقرأ الملف.');
+    }
+  }
+
+  function currentWantedMode(){
+    return document.querySelector('.tab.active').dataset.mode;
+  }
+
+  function checkReady(){
+    const invReady = !!invRaw;
+    if(invReady) enableStep('step2');
+    const mode = currentWantedMode();
+    let wantedReady = false;
+    if(mode==='paste'){
+      wantedReady = document.getElementById('pasteArea').value.trim().length>0;
+    } else {
+      wantedReady = wantedLines.length>0;
+    }
+    document.getElementById('runBtn').disabled = !(invReady && wantedReady);
+  }
+
+  // tabs
+  document.querySelectorAll('.tab').forEach(tab=>{
+    tab.addEventListener('click', ()=>{
+      document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+      tab.classList.add('active');
+      const mode = tab.dataset.mode;
+      document.getElementById('pasteMode').style.display = mode==='paste'?'block':'none';
+      document.getElementById('fileMode').style.display = mode==='file'?'block':'none';
+      checkReady();
+    });
+  });
+  document.getElementById('pasteArea').addEventListener('input', checkReady);
+
+  setupDrop(document.getElementById('dropInv'), document.getElementById('fileInv'), handleInventoryFile);
+  setupDrop(document.getElementById('dropWanted'), document.getElementById('fileWanted'), handleWantedFile);
+
+  ['colItemNum','colName','colQty','colUnit'].forEach(id=>{
+    document.getElementById(id).addEventListener('change', checkReady);
+  });
+
+  document.getElementById('runBtn').addEventListener('click', ()=>{
+    if(currentWantedMode()==='paste'){
+      wantedLines = document.getElementById('pasteArea').value.split(/\r?\n/).map(l=>l.trim()).filter(Boolean);
+    }
+    const statusEl = document.getElementById('runStatus');
+    statusEl.innerHTML = '<span class="spin"></span> جاري بناء الفهرس...';
+    setTimeout(()=>{
+      buildInventory();
+      statusEl.textContent = 'جاري المطابقة...';
+      setTimeout(()=>{
+        runMatching();
+        enableStep('step3');
+        renderSummary();
+        renderResults();
+        statusEl.textContent = '';
+        document.getElementById('step3').scrollIntoView({behavior:'smooth', block:'start'});
+      }, 30);
+    }, 30);
+  });
+
+  document.getElementById('search').addEventListener('input', renderResults);
+  document.querySelectorAll('.fchip').forEach(ch=>{
+    ch.addEventListener('click', ()=>{
+      document.querySelectorAll('.fchip').forEach(c=>c.classList.remove('on'));
+      ch.classList.add('on');
+      activeFilter = ch.dataset.k;
+      renderResults();
+    });
+  });
+  document.getElementById('exportBtn').addEventListener('click', exportExcel);
+
+})();
+</script>
+</body>
+</html>
