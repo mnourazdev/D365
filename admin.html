@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<title>لوحة الملاحظات — Admin</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;900&family=IBM+Plex+Mono:wght@500&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+  :root{
+    --bg:#F1F3EF; --panel:#FFFFFF; --ink:#16241F; --ink-soft:#4B5D55; --line:#D8DED7;
+    --primary:#1F4A3D; --primary-ink:#FFFFFF;
+    --new-bg:#E3F1E4; --new-ink:#1E6B37;
+    --read-bg:#EAEFE9; --read-ink:#4B5D55;
+    --chip-bg:#EAEFE9; --danger:#B3413A;
+    --shadow:0 1px 2px rgba(20,30,25,.06);
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --bg:#121815; --panel:#1A2320; --ink:#EDF2EE; --ink-soft:#A9B6AE; --line:#2C3A34;
+      --primary:#5CA98A; --primary-ink:#0D1512;
+      --new-bg:#173626; --new-ink:#7FDB9A; --read-bg:#212B26; --read-ink:#A9B6AE;
+      --chip-bg:#212B26; --danger:#E17B72; --shadow:0 1px 2px rgba(0,0,0,.4);
+    }
+  }
+  *{box-sizing:border-box;}
+  body{margin:0; background:var(--bg); color:var(--ink); font-family:'Tajawal',sans-serif; line-height:1.55; padding:0 0 70px;}
+  .mono{font-family:'IBM Plex Mono',monospace;}
+  nav.top{background:var(--panel); border-bottom:3px solid var(--primary); position:sticky; top:0; z-index:20;}
+  nav.top .inner{max-width:1200px;margin:0 auto;padding:14px 16px;display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;}
+  .brand{font-weight:900;font-size:17px;}
+  .who{font-size:12.5px;color:var(--ink-soft);}
+  .wrap{max-width:1200px;margin:0 auto;padding:26px 16px;}
+  .summary{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:18px;}
+  .stat{flex:1;min-width:130px;background:var(--panel);border:1px solid var(--line);border-radius:9px;padding:14px 16px;box-shadow:var(--shadow);}
+  .stat .n{font-size:24px;font-weight:900;font-family:'IBM Plex Mono',monospace;}
+  .stat .l{font-size:12px;color:var(--ink-soft);}
+  .toolbar{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:12px;align-items:center;}
+  .chips{display:flex;gap:6px;flex-wrap:wrap;}
+  .chip{padding:5px 12px;border-radius:20px;font-size:12.5px;font-weight:700;cursor:pointer;border:1px solid var(--line);background:var(--panel);color:var(--ink-soft);}
+  .chip.on{background:var(--primary);color:var(--primary-ink);border-color:transparent;}
+  input[type=text]{border:1px solid var(--line);border-radius:7px;background:var(--panel);color:var(--ink);padding:8px 10px;font-family:inherit;font-size:13.5px;max-width:240px;}
+  button.primary{background:var(--primary);color:var(--primary-ink);border:none;border-radius:7px;padding:9px 18px;font-size:13.5px;font-weight:700;cursor:pointer;font-family:inherit;}
+  button.secondary{background:none;border:1px solid var(--line);color:var(--ink);border-radius:7px;padding:8px 16px;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;}
+  .iconbtn{background:none;border:none;cursor:pointer;color:var(--danger);font-size:15px;padding:4px 6px;border-radius:6px;}
+  .iconbtn:hover{background:var(--chip-bg);}
+  .panel{background:var(--panel);border:1px solid var(--line);border-radius:10px;box-shadow:var(--shadow);overflow:hidden;}
+  table{width:100%;border-collapse:collapse;font-size:13px;}
+  thead th{text-align:right;font-size:11.5px;color:var(--ink-soft);font-weight:700;border-bottom:2px solid var(--line);padding:9px 10px;white-space:nowrap;}
+  tbody tr{border-bottom:1px solid var(--line);}
+  tbody tr:hover{background:var(--chip-bg);}
+  tbody td{padding:10px;vertical-align:top;}
+  .msgcell{max-width:520px;white-space:pre-wrap;word-break:break-word;}
+  .pill{display:inline-block;padding:3px 10px;border-radius:20px;font-size:11.5px;font-weight:700;white-space:nowrap;}
+  .pill.new{background:var(--new-bg);color:var(--new-ink);}
+  .pill.read{background:var(--read-bg);color:var(--read-ink);}
+  .empty{text-align:center;padding:60px 20px;color:var(--ink-soft);}
+  .err{background:#FBE7E5;color:#A3382C;padding:14px;border-radius:9px;font-size:13.5px;margin-bottom:16px;}
+  .spin{width:16px;height:16px;border-radius:50%;border:2.5px solid var(--chip-bg);border-top-color:var(--primary);animation:sp .7s linear infinite;display:inline-block;vertical-align:middle;}
+  @keyframes sp{to{transform:rotate(360deg);}}
+  .tablewrap{overflow-x:auto;}
+</style>
+</head>
+<body>
+<nav class="top"><div class="inner">
+  <div class="brand">🔐 لوحة الملاحظات</div>
+  <div style="display:flex;gap:12px;align-items:center;">
+    <span class="who" id="who"></span>
+    <a href="/" class="mono" style="font-size:12.5px;">← الموقع</a>
+  </div>
+</div></nav>
+
+<div class="wrap">
+  <div id="errBox"></div>
+  <div class="summary" id="summary"></div>
+  <div class="toolbar">
+    <div class="chips" id="chips">
+      <div class="chip on" data-k="all">الكل</div>
+      <div class="chip" data-k="new">جديدة</div>
+      <div class="chip" data-k="read">مقروءة</div>
+      <div class="chip" data-k="مشكلة">مشاكل</div>
+      <div class="chip" data-k="اقتراح">اقتراحات</div>
+    </div>
+    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+      <input type="text" id="search" placeholder="بحث بالنص...">
+      <button class="secondary" id="refreshBtn">↻ تحديث</button>
+      <button class="primary" id="exportBtn">⬇ تصدير اكسل</button>
+    </div>
+  </div>
+  <div class="panel"><div class="tablewrap">
+    <table>
+      <thead><tr>
+        <th>التاريخ</th><th>النوع</th><th>الاسم</th><th>الرسالة</th><th>البريد</th><th>الحالة</th><th></th>
+      </tr></thead>
+      <tbody id="body"><tr><td colspan="7"><div class="empty"><span class="spin"></span> جاري التحميل...</div></td></tr></tbody>
+    </table>
+  </div></div>
+</div>
+
+<script>
+(function(){
+  "use strict";
+  let rows=[], filter='all';
+  const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  const fmtDate=iso=>{ try{ const d=new Date(iso); return d.toLocaleString('ar-SA-u-ca-gregory',{year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'}); }catch(e){ return iso; } };
+
+  async function load(){
+    document.getElementById('errBox').innerHTML='';
+    try{
+      const r=await fetch('/api/admin/feedback',{headers:{'Accept':'application/json'}});
+      if(r.status===401||r.status===403){
+        document.getElementById('errBox').innerHTML='<div class="err">غير مصرّح. تأكد أن Cloudflare Access مفعّل على هذا المسار وأنك سجّلت الدخول بالإيميل المصرّح له.</div>';
+        document.getElementById('body').innerHTML='<tr><td colspan="7"><div class="empty">—</div></td></tr>';
+        return;
+      }
+      const d=await r.json();
+      rows=d.items||[];
+      if(d.user) document.getElementById('who').textContent=d.user;
+      render();
+    }catch(e){
+      console.error(e);
+      document.getElementById('errBox').innerHTML='<div class="err">تعذّر تحميل البيانات. تأكد من إعداد قاعدة البيانات D1 والربط باسم DB.</div>';
+      document.getElementById('body').innerHTML='<tr><td colspan="7"><div class="empty">—</div></td></tr>';
+    }
+  }
+
+  function filtered(){
+    const q=document.getElementById('search').value.trim().toLowerCase();
+    return rows.filter(r=>{
+      if(filter==='new'&&r.status!=='new') return false;
+      if(filter==='read'&&r.status!=='read') return false;
+      if(filter!=='all'&&filter!=='new'&&filter!=='read'&&r.type!==filter) return false;
+      if(q){
+        const hay=(r.message+' '+(r.name||'')+' '+(r.email||'')).toLowerCase();
+        if(!hay.includes(q)) return false;
+      }
+      return true;
+    });
+  }
+
+  function render(){
+    const c={total:rows.length,new:0,problem:0};
+    rows.forEach(r=>{ if(r.status==='new')c.new++; if(r.type==='مشكلة')c.problem++; });
+    document.getElementById('summary').innerHTML=`
+      <div class="stat"><div class="n">${c.total}</div><div class="l">إجمالي الملاحظات</div></div>
+      <div class="stat"><div class="n" style="color:var(--new-ink)">${c.new}</div><div class="l">جديدة غير مقروءة</div></div>
+      <div class="stat"><div class="n" style="color:var(--danger)">${c.problem}</div><div class="l">بلاغات مشاكل</div></div>`;
+
+    const list=filtered(), tb=document.getElementById('body');
+    if(!list.length){ tb.innerHTML='<tr><td colspan="7"><div class="empty">لا ملاحظات مطابقة</div></td></tr>'; return; }
+    tb.innerHTML=list.map(r=>`
+      <tr>
+        <td class="mono" style="white-space:nowrap;font-size:11.5px;color:var(--ink-soft)">${esc(fmtDate(r.created_at))}</td>
+        <td>${esc(r.type)}</td>
+        <td>${esc(r.name||'-')}</td>
+        <td class="msgcell">${esc(r.message)}</td>
+        <td style="font-size:12px">${r.email?`<a href="mailto:${esc(r.email)}">${esc(r.email)}</a>`:'-'}</td>
+        <td><span class="pill ${r.status==='new'?'new':'read'}" data-toggle="${r.id}" style="cursor:pointer">${r.status==='new'?'جديدة':'مقروءة'}</span></td>
+        <td><button class="iconbtn" data-del="${r.id}" title="حذف">🗑</button></td>
+      </tr>`).join('');
+
+    tb.querySelectorAll('[data-toggle]').forEach(el=>el.addEventListener('click',async()=>{
+      const id=el.dataset.toggle, row=rows.find(x=>String(x.id)===String(id));
+      const next=row.status==='new'?'read':'new';
+      row.status=next; render();
+      try{ await fetch('/api/admin/feedback',{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({id,status:next})}); }
+      catch(e){ console.error(e); }
+    }));
+    tb.querySelectorAll('[data-del]').forEach(el=>el.addEventListener('click',async()=>{
+      if(!confirm('حذف هذه الملاحظة نهائياً؟')) return;
+      const id=el.dataset.del;
+      rows=rows.filter(x=>String(x.id)!==String(id)); render();
+      try{ await fetch('/api/admin/feedback?id='+encodeURIComponent(id),{method:'DELETE'}); }
+      catch(e){ console.error(e); }
+    }));
+  }
+
+  document.getElementById('search').addEventListener('input',render);
+  document.querySelectorAll('.chip').forEach(c=>c.addEventListener('click',()=>{
+    document.querySelectorAll('.chip').forEach(x=>x.classList.remove('on'));
+    c.classList.add('on'); filter=c.dataset.k; render();
+  }));
+  document.getElementById('refreshBtn').addEventListener('click',load);
+  document.getElementById('exportBtn').addEventListener('click',()=>{
+    const list=filtered();
+    if(!list.length){ alert('لا توجد ملاحظات للتصدير'); return; }
+    const aoa=[['التاريخ','النوع','الاسم','الرسالة','البريد','الحالة']];
+    list.forEach(r=>aoa.push([fmtDate(r.created_at),r.type,r.name||'-',r.message,r.email||'-',r.status==='new'?'جديدة':'مقروءة']));
+    const wb=XLSX.utils.book_new(), ws=XLSX.utils.aoa_to_sheet(aoa);
+    ws['!cols']=[{wch:20},{wch:12},{wch:18},{wch:60},{wch:24},{wch:10}];
+    XLSX.utils.book_append_sheet(wb,ws,'الملاحظات');
+    const out=XLSX.write(wb,{bookType:'xlsx',type:'array'});
+    const blob=new Blob([out],{type:'application/octet-stream'});
+    const url=URL.createObjectURL(blob), a=document.createElement('a');
+    a.href=url; a.download='سجل_الملاحظات.xlsx'; document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    setTimeout(()=>URL.revokeObjectURL(url),2000);
+  });
+
+  load();
+})();
+</script>
+</body>
+</html>
