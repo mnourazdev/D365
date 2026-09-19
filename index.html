@@ -845,6 +845,54 @@
     tb.querySelectorAll('input[data-f]').forEach(inp=>inp.addEventListener('input',()=>{
       manualRows[parseInt(inp.dataset.i)][inp.dataset.f]=inp.value;
     }));
+    // ArrowDown: إنشاء/الانتقال للصف التالي فقط عندما لا تكون قائمة الاقتراحات مفتوحة
+tb.querySelectorAll('input').forEach(inp=>{
+  inp.addEventListener('keydown',e=>{
+    if(e.key !== 'ArrowDown') return;
+
+    // إذا قائمة الاقتراحات مفتوحة، اترك attachCombo يتعامل مع ArrowDown
+    if(!pop.hidden && popOwner===inp) return;
+
+    const i=parseInt(inp.dataset.i);
+    const row=manualRows[i];
+
+    const hasData =
+      String(row.itemNumber || '').trim() !== '' ||
+      String(row.name || '').trim() !== '' ||
+      String(row.qty || '').trim() !== '' ||
+      String(row.unit || '').trim() !== '';
+
+    // الصف فارغ → لا تعمل شيء
+    if(!hasData) return;
+
+    e.preventDefault();
+
+    // آخر صف → أنشئ صف جديد
+    if(i === manualRows.length - 1){
+      manualRows.push({
+        itemNumber:'',
+        name:'',
+        qty:'',
+        unit:''
+      });
+
+      renderManual();
+
+      const newInput=document.querySelector(
+        '#manualBody .mnum[data-i="'+(manualRows.length-1)+'"]'
+      );
+
+      if(newInput) newInput.focus();
+    }else{
+      // يوجد صف بعده → انتقل إليه
+      const nextInput=document.querySelector(
+        '#manualBody .mnum[data-i="'+(i+1)+'"]'
+      );
+
+      if(nextInput) nextInput.focus();
+    }
+  });
+});
     tb.querySelectorAll('[data-mdel]').forEach(b=>b.addEventListener('click',()=>{
       manualRows.splice(parseInt(b.dataset.mdel),1);
       if(!manualRows.length) manualRows.push({itemNumber:'',name:'',qty:'',unit:''});
