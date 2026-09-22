@@ -1,0 +1,971 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<title>أداة الأصناف والمخزون</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;900&family=IBM+Plex+Mono:wght@500&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"
+        onerror="this.onerror=null;var s=document.createElement('script');s.src='https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js';document.head.appendChild(s);"></script>
+<script src="catalog.js"
+        onerror="window.__CATALOG_LOAD_FAILED__=true;"></script>
+<style>
+  :root{
+    --bg:#F1F3EF; --panel:#FFFFFF; --ink:#16241F; --ink-soft:#4B5D55; --line:#D8DED7;
+    --primary:#1F4A3D; --primary-ink:#FFFFFF; --accent:#C98A2E;
+    --found-bg:#E3F1E4; --found-ink:#1E6B37;
+    --partial-bg:#FBF0DA; --partial-ink:#8A5A12;
+    --notfound-bg:#FBE7E5; --notfound-ink:#A3382C;
+    --chip-bg:#EAEFE9; --danger:#B3413A; --hl:#FFF0B8;
+    --shadow: 0 1px 2px rgba(20,30,25,.06);
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --bg:#121815; --panel:#1A2320; --ink:#EDF2EE; --ink-soft:#A9B6AE; --line:#2C3A34;
+      --primary:#5CA98A; --primary-ink:#0D1512; --accent:#E3A94F;
+      --found-bg:#173626; --found-ink:#7FDB9A; --partial-bg:#3A2E13; --partial-ink:#F0C36B;
+      --notfound-bg:#3A1D1A; --notfound-ink:#F1958A; --chip-bg:#212B26; --danger:#E17B72;
+      --hl:#5A4A12; --shadow: 0 1px 2px rgba(0,0,0,.4);
+    }
+  }
+  :root[data-theme="dark"]{
+    --bg:#121815; --panel:#1A2320; --ink:#EDF2EE; --ink-soft:#A9B6AE; --line:#2C3A34;
+    --primary:#5CA98A; --primary-ink:#0D1512; --accent:#E3A94F;
+    --found-bg:#173626; --found-ink:#7FDB9A; --partial-bg:#3A2E13; --partial-ink:#F0C36B;
+    --notfound-bg:#3A1D1A; --notfound-ink:#F1958A; --chip-bg:#212B26; --danger:#E17B72; --hl:#5A4A12;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{background:var(--bg); color:var(--ink); font-family:'Tajawal',sans-serif; line-height:1.55; min-height:100vh;}
+  .mono{font-family:'IBM Plex Mono',monospace;}
+  .wrap{max-width:1240px;margin:0 auto; padding:0 16px 90px;}
+  a{color:var(--primary);}
+  mark{background:var(--hl); color:inherit; padding:0 1px; border-radius:2px;}
+
+  nav.top{background:var(--panel); border-bottom:3px solid var(--primary); position:sticky; top:0; z-index:60;}
+  nav.top .inner{max-width:1240px;margin:0 auto; padding:13px 16px; display:flex; align-items:center; justify-content:space-between; gap:14px; flex-wrap:wrap;}
+  nav.top .brand{font-weight:900; font-size:17px; display:flex; align-items:center; gap:8px;}
+  nav.top .links{display:flex; gap:4px; flex-wrap:wrap;}
+  nav.top .navlink{padding:8px 14px; border-radius:7px; font-size:13.5px; font-weight:700; cursor:pointer; color:var(--ink-soft); background:none; border:none; font-family:inherit;}
+  nav.top .navlink.active{background:var(--primary); color:var(--primary-ink);}
+  nav.top .navlink:hover:not(.active){background:var(--chip-bg);}
+
+  .page{display:none; padding-top:26px;}
+  .page.active{display:block;}
+
+  .hero{padding:34px 0 10px;}
+  .hero h1{font-size:27px; margin:0 0 8px; font-weight:900;}
+  .hero p{color:var(--ink-soft); font-size:14.5px; max-width:680px; margin:0 0 10px;}
+  .catbadge{display:inline-block; background:var(--found-bg); color:var(--found-ink); padding:6px 14px; border-radius:20px; font-size:12.5px; font-weight:700; margin-bottom:24px;}
+  .diagbox{background:var(--notfound-bg); color:var(--notfound-ink); border:1px solid var(--danger); border-radius:10px; padding:16px 18px; margin-bottom:20px; font-size:13.5px; line-height:1.8;}
+  .diagbox b{display:block; margin-bottom:4px;}
+  .diagbox code{background:rgba(0,0,0,.08); padding:1px 5px; border-radius:4px;}
+  .cards{display:grid; grid-template-columns:repeat(3,1fr); gap:16px;}
+  @media (max-width:820px){.cards{grid-template-columns:1fr;}}
+  .card{background:var(--panel); border:1px solid var(--line); border-radius:12px; padding:22px; box-shadow:var(--shadow); cursor:pointer; transition:.15s;}
+  .card:hover{border-color:var(--primary); transform:translateY(-2px);}
+  .card .ic{font-size:26px; margin-bottom:10px;}
+  .card h3{margin:0 0 6px; font-size:15.5px;}
+  .card p{margin:0; font-size:13px; color:var(--ink-soft);}
+
+  .step{background:var(--panel); border:1px solid var(--line); border-radius:10px; padding:20px 22px; margin-bottom:18px; box-shadow:var(--shadow);}
+  .step.disabled{opacity:.5; pointer-events:none;}
+  .step h2{font-size:15.5px; margin:0 0 14px; display:flex; align-items:center; gap:10px;}
+  .step h2 .num{background:var(--primary); color:var(--primary-ink); border-radius:50%; width:24px; height:24px; display:flex; align-items:center; justify-content:center; font-size:12.5px; font-weight:700; flex:none;}
+  .step h2 .opt{font-size:11.5px; font-weight:700; color:var(--ink-soft); background:var(--chip-bg); padding:3px 9px; border-radius:20px;}
+  .step p.hint{color:var(--ink-soft); font-size:13px; margin:-6px 0 14px 34px;}
+
+  .drop{border:1.5px dashed var(--line); border-radius:8px; padding:20px; text-align:center; cursor:pointer; transition:.15s; background:var(--bg);}
+  .drop:hover, .drop.drag{border-color:var(--primary); background:var(--found-bg);}
+  .drop input{display:none;}
+  .drop .ic{font-size:20px; margin-bottom:5px;}
+  .drop .main{font-size:13.5px; font-weight:700;}
+  .drop .sub{font-size:12px; color:var(--ink-soft); margin-top:3px;}
+  .fileok{display:flex; align-items:center; justify-content:space-between; gap:10px; background:var(--found-bg); color:var(--found-ink); border-radius:8px; padding:10px 14px; font-size:13.5px; font-weight:700;}
+  .fileok button{background:none;border:none;color:inherit;cursor:pointer;font-size:12px;text-decoration:underline;font-family:inherit;}
+  .srcline{display:flex;align-items:center;gap:8px;font-size:12.5px;color:var(--ink-soft);margin-bottom:12px;flex-wrap:wrap;}
+  .srctag{background:var(--chip-bg);padding:4px 11px;border-radius:20px;font-weight:700;color:var(--ink);}
+  .linkbtn{background:none;border:none;cursor:pointer;color:var(--primary);font-size:12.5px;text-decoration:underline;font-family:inherit;padding:2px;}
+
+  .cols{display:grid; grid-template-columns:repeat(4,1fr); gap:12px; margin-top:14px;}
+  @media (max-width:820px){.cols{grid-template-columns:repeat(2,1fr);}}
+  .field label{display:block; font-size:12px; color:var(--ink-soft); margin-bottom:5px; font-weight:700;}
+  select, textarea, input[type=text], input[type=email]{width:100%; border:1px solid var(--line); border-radius:7px; background:var(--panel); color:var(--ink); padding:8px 10px; font-family:inherit; font-size:13.5px;}
+  select:focus, textarea:focus, input:focus{outline:2px solid var(--primary); outline-offset:1px;}
+
+  .tabs{display:flex; gap:6px; margin-bottom:12px;}
+  .tab{padding:7px 14px; border-radius:7px; font-size:13px; font-weight:700; cursor:pointer; background:var(--chip-bg); color:var(--ink-soft); border:1px solid transparent;}
+  .tab.active{background:var(--primary); color:var(--primary-ink);}
+  textarea#pasteArea{min-height:150px; resize:vertical; font-family:'IBM Plex Mono',monospace; font-size:13px;}
+
+  .btnrow{display:flex; gap:10px; margin-top:16px; flex-wrap:wrap; align-items:center;}
+  button.primary{background:var(--primary); color:var(--primary-ink); border:none; border-radius:7px; padding:11px 22px; font-size:14.5px; font-weight:700; cursor:pointer; font-family:inherit;}
+  button.primary:disabled{opacity:.4; cursor:not-allowed;}
+  button.secondary{background:none; border:1px solid var(--line); color:var(--ink); border-radius:7px; padding:10px 18px; font-size:13.5px; font-weight:700; cursor:pointer; font-family:inherit;}
+  .iconbtn{background:none;border:none;cursor:pointer;color:var(--danger);font-size:16px;padding:4px 6px;border-radius:6px;}
+  .iconbtn:hover{background:var(--notfound-bg);}
+
+  .summary{display:flex; gap:10px; flex-wrap:wrap; margin:6px 0 18px;}
+  .stat{flex:1; min-width:120px; background:var(--panel); border:1px solid var(--line); border-radius:9px; padding:14px 16px; box-shadow:var(--shadow);}
+  .stat .n{font-size:24px; font-weight:900; font-family:'IBM Plex Mono',monospace;}
+  .stat .l{font-size:12px; color:var(--ink-soft); margin-top:2px;}
+  .stat.found .n{color:var(--found-ink);}
+  .stat.partial .n{color:var(--partial-ink);}
+  .stat.notfound .n{color:var(--notfound-ink);}
+
+  .toolbar{display:flex; justify-content:space-between; align-items:center; gap:12px; margin-bottom:10px; flex-wrap:wrap;}
+  .filterchips{display:flex; gap:6px; flex-wrap:wrap;}
+  .fchip{padding:5px 12px; border-radius:20px; font-size:12.5px; font-weight:700; cursor:pointer; border:1px solid var(--line); background:var(--panel); color:var(--ink-soft);}
+  .fchip.on{border-color:transparent;}
+  .fchip[data-k="all"].on{background:var(--primary); color:var(--primary-ink);}
+  .fchip[data-k="found"].on{background:var(--found-bg); color:var(--found-ink);}
+  .fchip[data-k="partial"].on{background:var(--partial-bg); color:var(--partial-ink);}
+  .fchip[data-k="notfound"].on{background:var(--notfound-bg); color:var(--notfound-ink);}
+  input#search{max-width:220px;}
+
+  table{width:100%; border-collapse:collapse; font-size:13px;}
+  thead th{text-align:right; font-size:11.5px; color:var(--ink-soft); font-weight:700; border-bottom:2px solid var(--line); padding:8px 8px; white-space:nowrap;}
+  tbody tr{border-bottom:1px solid var(--line);}
+  tbody tr:hover{background:var(--chip-bg);}
+  tbody td{padding:8px; vertical-align:top;}
+  .req-name input{font-weight:700; border:1px solid transparent; background:none; padding:6px 7px;}
+  .req-name input:hover{border-color:var(--line);}
+  .req-name input:focus{border-color:var(--primary); background:var(--panel);}
+  .req-qty{color:var(--ink-soft); font-size:12px;}
+  .status-pill{display:inline-block; padding:3px 10px; border-radius:20px; font-size:11.5px; font-weight:700; white-space:nowrap;}
+  .status-pill.found{background:var(--found-bg); color:var(--found-ink);}
+  .status-pill.partial{background:var(--partial-bg); color:var(--partial-ink);}
+  .status-pill.notfound{background:var(--notfound-bg); color:var(--notfound-ink);}
+  .qtycell{font-family:'IBM Plex Mono',monospace; font-weight:700;}
+  .tablewrap{overflow-x:auto; overflow-y:visible; border-radius:8px;}
+  .footnote{color:var(--ink-soft); font-size:12px; margin-top:10px;}
+  .empty{text-align:center; padding:50px 20px; color:var(--ink-soft);}
+  .spin{width:16px;height:16px;border-radius:50%;border:2.5px solid var(--chip-bg); border-top-color:var(--primary); animation:sp .7s linear infinite; display:inline-block; vertical-align:middle;}
+  @keyframes sp{to{transform:rotate(360deg);}}
+
+  .combo-input{width:100%; font-size:12.5px; padding:7px 9px;}
+  .combo-pop{position:fixed; z-index:200; background:var(--panel); border:1px solid var(--line); border-radius:9px; box-shadow:0 10px 30px rgba(0,0,0,.22); max-height:330px; overflow-y:auto; min-width:320px;}
+  .combo-pop[hidden]{display:none;}
+  .combo-head{padding:7px 11px; font-size:11.5px; color:var(--ink-soft); border-bottom:1px solid var(--line); position:sticky; top:0; background:var(--panel);}
+  .combo-item{padding:8px 11px; cursor:pointer; font-size:12.5px; border-bottom:1px solid var(--line); display:block;}
+  .combo-item:last-child{border-bottom:none;}
+  .combo-item.hi{background:var(--chip-bg);}
+  .combo-item .nm{font-weight:700; display:block;}
+  .combo-item .meta{display:flex; gap:10px; margin-top:3px;}
+  .combo-item .num{font-family:'IBM Plex Mono',monospace; color:var(--ink-soft); font-size:11px;}
+  .combo-item .qt{font-family:'IBM Plex Mono',monospace; font-size:11px; color:var(--found-ink); font-weight:700;}
+  .combo-item.zero .qt{color:var(--notfound-ink);}
+  .combo-item.clearopt{color:var(--notfound-ink); font-weight:700;}
+  .combo-empty{padding:14px; font-size:12.5px; color:var(--ink-soft); text-align:center;}
+
+  .manual-table input{font-size:13px; padding:6px 8px; width:100%;}
+  .manual-table td{padding:5px 6px;}
+
+  .formgrid{display:grid; grid-template-columns:1fr 1fr; gap:14px;}
+  @media (max-width:700px){.formgrid{grid-template-columns:1fr;}}
+  .formgrid .full{grid-column:1/-1;}
+  .fb-msg{margin-top:14px; padding:12px 14px; border-radius:8px; font-size:13.5px; display:none;}
+  .fb-msg.ok{display:block; background:var(--found-bg); color:var(--found-ink);}
+  .fb-msg.err{display:block; background:var(--notfound-bg); color:var(--notfound-ink);}
+  textarea#fbMessage{min-height:120px;}
+</style>
+</head>
+<body>
+
+<nav class="top">
+  <div class="inner">
+    <div class="brand">📦 أداة الأصناف والمخزون</div>
+    <div class="links">
+      <button class="navlink" data-page="home">الرئيسية</button>
+      <button class="navlink" data-page="match">مطابقة الأصناف</button>
+      <button class="navlink" data-page="manual">إدخال يدوي</button>
+      <button class="navlink" data-page="feedback">ملاحظات ومشاكل</button>
+    </div>
+  </div>
+</nav>
+
+<div class="wrap">
+
+  <section class="page" id="page-home">
+    <div class="hero">
+      <h1>أداة مطابقة الأصناف والمخزون</h1>
+      <p>قائمة الأصناف مخزّنة داخل الموقع — البحث يشتغل فوراً بدون رفع أي ملف. رفع ملف المخزون اختياري، فقط لو بدك تعرض الكميات المتاحة.</p>
+      <div class="catbadge" id="catBadge">جاري تحميل كتالوج الأصناف...</div>
+      <div id="diagBox"></div>
+    </div>
+    <div class="cards">
+      <div class="card" data-goto="match">
+        <div class="ic">🔎</div><h3>مطابقة الأصناف</h3>
+        <p>الصق قائمة الطلبات وطلّع تقرير مطابقة فوري، مع بحث احترافي وتعديل يدوي وتصدير إكسل.</p>
+      </div>
+      <div class="card" data-goto="manual">
+        <div class="ic">✍️</div><h3>إدخال يدوي</h3>
+        <p>أضف الأصناف صف بصف مع اقتراحات تلقائية من الكتالوج المخزّن — يشتغل مباشرة.</p>
+      </div>
+      <div class="card" data-goto="feedback">
+        <div class="ic">💬</div><h3>ملاحظات ومشاكل</h3>
+        <p>واجهتك مشكلة أو عندك اقتراح؟ أرسلها وتوصل مباشرة لإدارة الموقع.</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="page" id="page-match">
+    <div class="step" id="step1">
+      <h2><span class="num">1</span> ملف المخزون <span class="opt">اختياري</span></h2>
+      <p class="hint">البحث والمطابقة شغّالة بدون ملف. ارفع ملف فقط لو بدك تظهر الكميات المتاحة (العمود الافتراضي: Available physical).</p>
+      <div class="srcline">
+        <span>مصدر المخزون الحالي:</span><span class="srctag" id="invSrcTag">الكتالوج المخزّن</span>
+        <button class="linkbtn" id="resetInvBtn" style="display:none;">رجوع للكتالوج المخزّن</button>
+      </div>
+      <div class="drop" id="dropInv">
+        <input type="file" id="fileInv" accept=".xlsx,.xls,.csv">
+        <div class="ic">📦</div><div class="main">اسحب ملف المخزون هنا أو اضغط للاختيار</div><div class="sub">xlsx / xls / csv</div>
+      </div>
+      <div id="invOk" style="display:none;margin-top:10px;"></div>
+      <div id="invCols" style="display:none;">
+        <div class="cols">
+          <div class="field"><label>عمود رقم الصنف</label><select id="colItemNum"></select></div>
+          <div class="field"><label>عمود اسم الصنف</label><select id="colName"></select></div>
+          <div class="field"><label>عمود الكمية المتاحة</label><select id="colQty"></select></div>
+          <div class="field"><label>عمود الوحدة (اختياري)</label><select id="colUnit"></select></div>
+        </div>
+        <div class="btnrow"><button class="primary" id="invApplyBtn">اعتماد هذا الملف كمخزون</button><span id="invStatus" style="font-size:12.5px;color:var(--ink-soft);"></span></div>
+      </div>
+    </div>
+
+    <div class="step" id="step2">
+      <h2><span class="num">2</span> الأصناف المطلوبة</h2>
+      <div class="tabs">
+        <div class="tab active" data-mode="paste">لصق قائمة</div>
+        <div class="tab" data-mode="file">رفع ملف</div>
+      </div>
+      <div id="pasteMode">
+        <textarea id="pasteArea" placeholder="صنف بكل سطر، مثال:&#10;شوكولاته داكنه 40 كيلو&#10;بيض 2 كرتون&#10;101001"></textarea>
+      </div>
+      <div id="fileMode" style="display:none;">
+        <div class="drop" id="dropWanted">
+          <input type="file" id="fileWanted" accept=".xlsx,.xls,.csv,.txt">
+          <div class="ic">📝</div><div class="main">اسحب ملف الطلبات هنا أو اضغط للاختيار</div><div class="sub">xlsx / csv / txt</div>
+        </div>
+        <div id="wantedOk" style="display:none;margin-top:10px;"></div>
+      </div>
+      <div class="btnrow">
+        <button class="primary" id="runBtn" disabled>قارن الآن</button>
+        <span id="runStatus" style="font-size:12.5px;color:var(--ink-soft);"></span>
+      </div>
+    </div>
+
+    <div class="step disabled" id="step3">
+      <h2><span class="num">3</span> نتيجة المطابقة</h2>
+      <div class="summary" id="summary"></div>
+      <div class="toolbar">
+        <div class="filterchips">
+          <div class="fchip on" data-k="all">الكل</div>
+          <div class="fchip" data-k="found">متوفر</div>
+          <div class="fchip" data-k="partial">يحتاج تأكيد</div>
+          <div class="fchip" data-k="notfound">غير موجود</div>
+        </div>
+        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+          <input type="text" id="search" placeholder="فلترة النتائج...">
+          <button class="secondary" id="addRowBtn">+ إضافة صنف</button>
+          <button class="secondary" id="exportBtn">⬇ تحميل اكسل</button>
+        </div>
+      </div>
+      <div class="tablewrap">
+        <table>
+          <thead><tr>
+            <th>#</th><th style="min-width:210px">الصنف المطلوب</th><th>الكمية المطلوبة</th><th>الحالة</th>
+            <th style="min-width:250px">الصنف بالمخزون</th><th>الكمية المتاحة</th><th></th>
+          </tr></thead>
+          <tbody id="resultsBody"></tbody>
+        </table>
+      </div>
+      <div class="footnote">
+        الحقلان فيهما بحث فوري: نص (<code>فستق براف</code>)، وايلد كارد بنمط D365 (<code>*فستق*براف*</code>)، أو رقم صنف. الأسهم ↑↓ للتنقل وEnter للاختيار. أي اختيار يدوي يحوّل الحالة إلى "متوفر".<br>
+        بدون رفع ملف، المطابقة تتم من الكتالوج المخزّن وعمود الكمية يظهر <code>—</code>. برفع ملف مخزون، كل صنف بقائمة الاختيار بيظهر معه كميته المتاحة.
+      </div>
+    </div>
+  </section>
+
+  <section class="page" id="page-manual">
+    <div class="step">
+      <h2><span class="num">✍️</span> إدخال الأصناف يدوياً</h2>
+      <p class="hint">اكتب برقم الصنف أو اسمه وبتظهر اقتراحات الكتالوج فوراً — اختر واحد وبتنعبى باقي الخانات تلقائياً.</p>
+      <div class="srcline">
+        <span>مصدر الاقتراحات:</span><span class="srctag" id="catSrcTag">الكتالوج المخزّن</span>
+      </div>
+      <div class="tablewrap">
+        <table class="manual-table">
+          <thead><tr><th style="width:20%">رقم الصنف</th><th>اسم الصنف</th><th style="width:5%"></th></tr></thead>
+          <tbody id="manualBody"></tbody>
+        </table>
+      </div>
+      <div class="btnrow">
+        <button class="secondary" id="manualAddRowBtn">+ إضافة صف</button>
+        <button class="secondary" id="manualExportBtn">⬇ تحميل اكسل</button>
+      </div>
+      <div class="footnote">اختيار صنف من الاقتراحات بيعبّي الصف وبينقلك لصف جديد مباشرة.</div>
+    </div>
+  </section>
+
+  <section class="page" id="page-feedback">
+    <div class="step">
+      <h2><span class="num">💬</span> ملاحظات أو مشاكل</h2>
+      <p class="hint">عبّي النموذج وبتوصل مباشرة لإدارة الموقع.</p>
+      <form id="fbForm">
+        <div class="formgrid">
+          <div class="field"><label>اسمك (اختياري)</label><input type="text" id="fbName" maxlength="120"></div>
+          <div class="field"><label>نوع الملاحظة</label>
+            <select id="fbType">
+              <option value="مشكلة">مشكلة / خطأ</option>
+              <option value="اقتراح">اقتراح تحسين</option>
+              <option value="سؤال">سؤال</option>
+              <option value="أخرى">أخرى</option>
+            </select>
+          </div>
+          <div class="field full"><label>الوصف *</label><textarea id="fbMessage" required maxlength="4000" placeholder="اشرح المشكلة أو الاقتراح بالتفصيل..."></textarea></div>
+          <div class="field"><label>بريد للتواصل (اختياري)</label><input type="email" id="fbEmail" maxlength="200" placeholder="example@mail.com"></div>
+        </div>
+        <div class="btnrow"><button class="primary" type="submit" id="fbSubmitBtn">إرسال</button></div>
+        <div class="fb-msg" id="fbMsg"></div>
+      </form>
+    </div>
+  </section>
+
+</div>
+
+<script>
+(function(){
+  "use strict";
+
+  /* ================= normalization ================= */
+  const AR_DIGITS='٠١٢٣٤٥٦٧٨٩';
+  function normalizeAr(s){
+    if(s===null||s===undefined) return '';
+    s=String(s);
+    s=s.replace(/[\u064B-\u065F\u0670\u06D6-\u06ED]/g,'').replace(/\u0640/g,'');
+    s=s.replace(/[إأآا]/g,'ا').replace(/ى/g,'ي').replace(/ة/g,'ه').replace(/ؤ/g,'و').replace(/ئ/g,'ي');
+    s=s.replace(/[٠-٩]/g,d=>String(AR_DIGITS.indexOf(d)));
+    s=s.replace(/[^\u0621-\u064A0-9a-zA-Z*\s]/g,' ');
+    return s.replace(/\s+/g,' ').trim().toLowerCase();
+  }
+  const UNIT_WORDS=new Set(['كرتون','كرتونه','كرتونة','كيلو','كجم','كغ','جم','جرام','غرام','لتر','مل','حبه','حبة','حبات','شد','عبوة','عبوه','قطعة','قطعه','قطع','كيس','جالون','علبة','علبه','علب','صندوق','سطل','تنك','تنكه','تنكة','باكت','ربطة','ربطه','ربطتين','دستة','دزينة','فرخ','رول','ك','غ','طن','شدة','شده','حبتين','صفيحة','صفيحه','قالب','بكت','دبة','دبه','كرت','او','ملي']);
+  const tokenize=n=>n.split(' ').filter(Boolean);
+  const coreTokens=t=>t.filter(x=>!UNIT_WORDS.has(x)&&!/^\d+$/.test(x));
+  function bigrams(s){s=s.replace(/\s+/g,'');const g=new Set();for(let i=0;i<s.length-1;i++)g.add(s.substr(i,2));if(!g.size&&s.length===1)g.add(s);return g;}
+  function diceSim(a,b){if(!a.size&&!b.size)return 0;let i=0;for(const x of a)if(b.has(x))i++;return 2*i/(a.size+b.size||1);}
+  const escapeHtml=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
+  /* ================= record sets =================
+     CAT = catalog -> autocomplete on the manual page (embedded, never replaced
+                      by the match page, so swapping stock can't break search)
+     INV = stock   -> what the match page searches and reports quantities from
+  */
+  function makeRecord(itemNumber,name,qty,unit,hasQty){
+    const normName=normalizeAr(name);
+    const core=coreTokens(tokenize(normName));
+    const coreStr=core.join('');
+    const q=parseFloat(qty);
+    return {itemNumber:String(itemNumber==null?'':itemNumber).trim(), name:String(name),
+            qty:isNaN(q)?0:q, unit:String(unit==null?'':unit).trim(),
+            normName, coreSet:new Set(core), coreStr, bigramSet:bigrams(coreStr||normName)};
+  }
+  function buildSet(records,label,hasQty){
+    const items=records.map(r=>makeRecord(r.itemNumber,r.name,r.qty,r.unit))
+                       .filter(r=>r.name&&r.name.trim());
+    const index=new Map();
+    items.forEach((inv,idx)=>inv.coreSet.forEach(t=>{
+      if(!index.has(t)) index.set(t,new Set());
+      index.get(t).add(idx);
+    }));
+    return {items,index,label,hasQty:!!hasQty};
+  }
+  let CAT=buildSet([],'الكتالوج المخزّن',false);
+  let INV=CAT;
+
+  /* ================= D365-style search ================= */
+  function queryKind(raw){
+    const t=String(raw||'').trim();
+    if(!t) return 'empty';
+    if(/^[\d٠-٩]+$/.test(t.replace(/\s/g,''))) return 'number';
+    return 'text';
+  }
+  function matchName(normName,nq){
+    if(!nq) return true;
+    if(nq.includes('*')){
+      const parts=nq.split('*').map(p=>p.trim()).filter(Boolean);
+      if(!parts.length) return true;
+      let pos=0;
+      for(const p of parts){const i=normName.indexOf(p,pos); if(i===-1) return false; pos=i+p.length;}
+      return true;
+    }
+    return nq.split(' ').filter(Boolean).every(t=>normName.includes(t));
+  }
+  function searchSet(set,rawQuery,limit){
+    limit=limit||50;
+    const items=set.items;
+    const kind=queryKind(rawQuery);
+    if(kind==='empty') return [];
+    if(kind==='number'){
+      const nq=normalizeAr(rawQuery);
+      const pre=[],mid=[],inName=[];
+      for(let i=0;i<items.length;i++){
+        const n=String(items[i].itemNumber||'');
+        if(!n) continue;
+        if(n.startsWith(nq)) pre.push(i);
+        else if(n.includes(nq)) mid.push(i);
+        if(pre.length>=limit) break;
+      }
+      if(pre.length+mid.length<limit){
+        const seen=new Set(pre.concat(mid));
+        for(let i=0;i<items.length;i++){
+          if(seen.has(i)) continue;
+          if(items[i].normName.includes(nq)) inName.push(i);
+          if(pre.length+mid.length+inName.length>=limit) break;
+        }
+      }
+      return pre.concat(mid,inName).slice(0,limit);
+    }
+    const nq=normalizeAr(rawQuery), out=[];
+    for(let i=0;i<items.length;i++){
+      if(matchName(items[i].normName,nq)) out.push(i);
+      if(out.length>=600) break;
+    }
+    if(set.hasQty) out.sort((a,b)=>items[b].qty-items[a].qty);
+    return out.slice(0,limit);
+  }
+  function highlight(name,rawQuery){
+    if(queryKind(rawQuery)!=='text') return escapeHtml(name);
+    const nq=normalizeAr(rawQuery);
+    const terms=nq.includes('*')?nq.split('*').map(p=>p.trim()).filter(Boolean):nq.split(' ').filter(Boolean);
+    let html=escapeHtml(name);
+    terms.forEach(t=>{
+      if(t.length<2) return;
+      try{
+        const re=new RegExp('('+t.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+')','gi');
+        html=html.replace(re,'<mark>$1</mark>');
+      }catch(e){}
+    });
+    return html;
+  }
+  function findCandidates(set,reqCore,reqCoreStr,reqBigrams){
+    const items=set.items;
+    let cand=new Set();
+    reqCore.forEach(t=>{const s=set.index.get(t); if(s) s.forEach(i=>cand.add(i));});
+    if(!cand.size&&reqCoreStr){
+      items.forEach((inv,i)=>{if(inv.coreStr&&(inv.coreStr.includes(reqCoreStr)||reqCoreStr.includes(inv.coreStr))) cand.add(i);});
+    }
+    const scored=[];
+    cand.forEach(idx=>{
+      const inv=items[idx];
+      const ov=reqCore.length?reqCore.filter(t=>inv.coreSet.has(t)).length/reqCore.length:0;
+      let score=0.65*ov+0.35*diceSim(reqBigrams,inv.bigramSet);
+      if(reqCoreStr&&inv.coreStr.includes(reqCoreStr)) score=Math.min(1,score+0.15);
+      scored.push({idx,score});
+    });
+    scored.sort((a,b)=>b.score-a.score);
+    return scored;
+  }
+  const statusFromScore=s=> s>=0.55?'found': s>=0.28?'partial':'notfound';
+  function extractQtyDisplay(orig,norm){
+    const out=[];
+    orig.forEach((raw,i)=>{const n=norm[i]; if(n!==undefined&&(UNIT_WORDS.has(n)||/^\d+$/.test(n))) out.push(raw);});
+    return out.length?out.join(' '):'-';
+  }
+  function computeRowMatch(raw){
+    if(queryKind(raw)==='number'){
+      const nq=normalizeAr(raw);
+      const exact=INV.items.findIndex(inv=>String(inv.itemNumber)===nq);
+      if(exact>=0) return {raw,qtyDisplay:'-',status:'found',candidates:[{idx:exact,score:1}],chosenIdx:exact};
+    }
+    const norm=normalizeAr(raw), tn=tokenize(norm), to=raw.split(/\s+/).filter(Boolean);
+    const core=coreTokens(tn), coreStr=core.join('');
+    const qtyDisplay=extractQtyDisplay(to,tn);
+    const scored=findCandidates(INV,core,coreStr,bigrams(coreStr));
+    let candidates=scored.slice(0,8), status='notfound', chosenIdx=-1;
+    if(scored.length){
+      const top=scored[0].score;
+      const close=scored.filter(s=>s.score>=Math.max(top-0.12,0)&&s.score>=0.2);
+      if(INV.hasQty) close.sort((a,b)=>(INV.items[b.idx].qty||0)-(INV.items[a.idx].qty||0));
+      const pick=close[0]||scored[0];
+      let ci=scored.findIndex(s=>s.idx===pick.idx); if(ci<0) ci=0;
+      status=statusFromScore(scored[ci].score);
+      candidates=[scored[ci],...scored.filter((s,ix)=>ix!==ci)].slice(0,8);
+      chosenIdx=candidates[0].idx;
+    }
+    return {raw,qtyDisplay,status,candidates,chosenIdx};
+  }
+
+  async function exportAOA(filename,sheetName,aoa,cols){
+    if(!ensureXLSX()) return;
+    const wb=XLSX.utils.book_new(), ws=XLSX.utils.aoa_to_sheet(aoa);
+    if(cols) ws['!cols']=cols;
+    XLSX.utils.book_append_sheet(wb,ws,sheetName);
+    const out=XLSX.write(wb,{bookType:'xlsx',type:'array'});
+    const blob=new Blob([out],{type:'application/octet-stream'});
+    if(typeof claude!=='undefined'&&claude&&claude.use){
+      try{const d=await claude.use('downloads'); if(d){await d.save({filename,data:blob}); return;}}catch(e){}
+    }
+    const url=URL.createObjectURL(blob), a=document.createElement('a');
+    a.href=url; a.download=filename; document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    setTimeout(()=>URL.revokeObjectURL(url),2000);
+  }
+
+  /* ================= combobox ================= */
+  const pop=document.createElement('div');
+  pop.className='combo-pop'; pop.hidden=true;
+  document.body.appendChild(pop);
+  let popOwner=null, popItems=[], popHi=-1, popOnPick=null;
+
+  function closePop(){pop.hidden=true; popOwner=null; popItems=[]; popHi=-1;}
+  function positionPop(input){
+    const r=input.getBoundingClientRect();
+    pop.style.top=(r.bottom+4)+'px';
+    pop.style.width=Math.max(r.width,340)+'px';
+    let right=window.innerWidth-r.right;
+    if(right+Math.max(r.width,340)>window.innerWidth) right=8;
+    pop.style.right=right+'px'; pop.style.left='auto';
+  }
+  function renderPop(items,query,headText,set){
+    popItems=items; popHi=items.length?0:-1;
+    if(!items.length){ pop.innerHTML='<div class="combo-empty">لا نتائج مطابقة</div>'; pop.hidden=false; return; }
+    let html=headText?'<div class="combo-head">'+escapeHtml(headText)+'</div>':'';
+    items.forEach((it,i)=>{
+      if(it.clear){ html+='<div class="combo-item clearopt '+(i===popHi?'hi':'')+'" data-i="'+i+'">— مسح الاختيار (غير موجود) —</div>'; return; }
+      const inv=set.items[it.idx];
+      const qtyTxt=set.hasQty?(inv.qty+(inv.unit?(' '+escapeHtml(inv.unit)):'')):'';
+      html+='<div class="combo-item '+(set.hasQty&&inv.qty<=0?'zero':'')+' '+(i===popHi?'hi':'')+'" data-i="'+i+'">'
+          +'<span class="nm">'+highlight(inv.name,query)+'</span>'
+          +'<span class="meta"><span class="num">'+escapeHtml(inv.itemNumber||'-')+'</span>'
+          +(qtyTxt?'<span class="qt">'+qtyTxt+'</span>':'')+'</span></div>';
+    });
+    pop.innerHTML=html;
+    pop.querySelectorAll('.combo-item').forEach(el=>{
+      el.addEventListener('mousedown',e=>{
+        e.preventDefault();
+        const it=popItems[parseInt(el.dataset.i)];
+        if(popOnPick) popOnPick(it.clear?-1:it.idx);
+        closePop();
+      });
+    });
+    pop.hidden=false;
+  }
+  function moveHi(d){
+    if(!popItems.length) return;
+    popHi=(popHi+d+popItems.length)%popItems.length;
+    pop.querySelectorAll('.combo-item').forEach((el,i)=>el.classList.toggle('hi',i===popHi));
+    const el=pop.querySelector('.combo-item.hi'); if(el) el.scrollIntoView({block:'nearest'});
+  }
+  // getSet() runs on every open so a swapped source is always picked up live
+  function attachCombo(input,getSet,getItems,onPick,headText){
+    function open(){
+      const set=getSet();
+      if(!set||!set.items.length) return;
+      popOwner=input; popOnPick=onPick;
+      positionPop(input);
+      renderPop(getItems(input.value,set),input.value,headText,set);
+    }
+    input.addEventListener('focus',open);
+    input.addEventListener('input',open);
+    input.addEventListener('click',open);
+    input.addEventListener('blur',()=>setTimeout(()=>{if(popOwner===input)closePop();},150));
+    input.addEventListener('keydown',e=>{
+      if(pop.hidden||popOwner!==input) return;
+      if(e.key==='ArrowDown'){e.preventDefault();moveHi(1);}
+      else if(e.key==='ArrowUp'){e.preventDefault();moveHi(-1);}
+      else if(e.key==='Enter'){ if(popHi>=0&&popItems[popHi]){e.preventDefault(); const it=popItems[popHi]; onPick(it.clear?-1:it.idx); closePop();} }
+      else if(e.key==='Escape'){closePop();}
+    });
+  }
+  window.addEventListener('scroll',()=>{if(popOwner)positionPop(popOwner);},true);
+  window.addEventListener('resize',()=>{if(popOwner)positionPop(popOwner);});
+
+  /* ================= nav ================= */
+  function gotoPage(n){
+    document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+    document.getElementById('page-'+n).classList.add('active');
+    document.querySelectorAll('.navlink').forEach(b=>b.classList.toggle('active',b.dataset.page===n));
+    closePop(); window.scrollTo({top:0});
+  }
+  document.querySelectorAll('.navlink').forEach(b=>b.addEventListener('click',()=>gotoPage(b.dataset.page)));
+  document.querySelectorAll('[data-goto]').forEach(el=>el.addEventListener('click',()=>gotoPage(el.dataset.goto)));
+  gotoPage('home');
+
+  /* ================= file helpers ================= */
+  function ensureXLSX(){
+    if(typeof XLSX!=='undefined') return true;
+    alert('تعذّر تحميل مكتبة قراءة ملفات الإكسل (XLSX) — على الأغلب سبب شبكي (جدار حماية أو حاجب إعلانات يمنع الوصول لـ cdnjs.cloudflare.com أو cdn.jsdelivr.net). تأكد من اتصال الإنترنت أو جرّب متصفح/شبكة ثانية.');
+    return false;
+  }
+  function readWB(file){
+    return new Promise((res,rej)=>{
+      const r=new FileReader();
+      r.onload=e=>{try{res(XLSX.read(new Uint8Array(e.target.result),{type:'array'}));}catch(err){rej(err);}};
+      r.onerror=rej; r.readAsArrayBuffer(file);
+    });
+  }
+  const toAOA=wb=>XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]],{header:1,raw:true,defval:''});
+  // Priority-ordered: the first keyword (in array order) that matches ANY
+  // header wins, regardless of whether a later keyword would match a longer
+  // substring elsewhere. This guarantees "Available physical" is picked over
+  // "Total available" etc. whenever both exist, because it is listed first.
+  function guessCol(headers,kws){
+    for(const k of kws){
+      const i=headers.findIndex(h=>String(h||'').toLowerCase().includes(k));
+      if(i>=0) return i;
+    }
+    return -1;
+  }
+  const COL_KWS={
+    num:['رقم الصنف','item number','item code','sku','رقم','code','item'],
+    name:['product name','اسم الصنف','الصنف','search name','name','description','اسم','product'],
+    qty:['available physical','physical available','الكمية المتاحة','available for reservation','total available','available','qty','quantity','stock','متاح','كمية'],
+    unit:['stock unit','الوحدة','unit']
+  };
+  function fillCols(headers,ids){
+    [['num',ids.num],['name',ids.name],['qty',ids.qty],['unit',ids.unit]].forEach(pair=>{
+      const k=pair[0], id=pair[1];
+      const sel=document.getElementById(id); sel.innerHTML='';
+      if(k==='unit'){const o=document.createElement('option');o.value='-1';o.textContent='(بدون)';sel.appendChild(o);}
+      headers.forEach((h,i)=>{const o=document.createElement('option');o.value=i;o.textContent=h||('عمود '+(i+1));sel.appendChild(o);});
+      const g=guessCol(headers,COL_KWS[k]); if(g>=0) sel.value=g;
+    });
+  }
+  function recordsFromRaw(raw,ids){
+    const iN=parseInt(document.getElementById(ids.num).value),
+          iM=parseInt(document.getElementById(ids.name).value),
+          iQ=parseInt(document.getElementById(ids.qty).value),
+          iUs=document.getElementById(ids.unit).value, iU=iUs==='-1'?-1:parseInt(iUs);
+    const recs=[];
+    raw.rows.forEach(row=>{
+      const nm=row[iM];
+      if(nm===undefined||nm===null||String(nm).trim()==='') return;
+      recs.push({itemNumber:iN>=0?row[iN]:'', name:nm, qty:iQ>=0?row[iQ]:0, unit:iU>=0?row[iU]:''});
+    });
+    return recs;
+  }
+  function setupDrop(dropEl,inputEl,onFile){
+    dropEl.addEventListener('click',()=>inputEl.click());
+    inputEl.addEventListener('change',e=>{if(e.target.files[0])onFile(e.target.files[0]);});
+    ['dragover','dragenter'].forEach(ev=>dropEl.addEventListener(ev,e=>{e.preventDefault();dropEl.classList.add('drag');}));
+    ['dragleave','drop'].forEach(ev=>dropEl.addEventListener(ev,e=>{e.preventDefault();dropEl.classList.remove('drag');}));
+    dropEl.addEventListener('drop',e=>{if(e.dataTransfer.files[0])onFile(e.dataTransfer.files[0]);});
+  }
+
+  /* ================= MATCH ================= */
+  let invRaw=null, wantedLines=[], results=[], activeFilter='all';
+  const IDS_MATCH={num:'colItemNum',name:'colName',qty:'colQty',unit:'colUnit'};
+
+  function setInvSource(set,resettable){
+    INV=set;
+    document.getElementById('invSrcTag').textContent=set.label;
+    document.getElementById('resetInvBtn').style.display=resettable?'inline':'none';
+    if(results.length){ results=results.map(r=>computeRowMatch(r.raw)); renderSummary(); renderResults(); }
+    checkReady();
+  }
+  document.getElementById('resetInvBtn').addEventListener('click',()=>{
+    setInvSource(CAT,false);
+    document.getElementById('invOk').style.display='none';
+    document.getElementById('invCols').style.display='none';
+    document.getElementById('fileInv').value=''; invRaw=null;
+    document.getElementById('invStatus').textContent='';
+  });
+
+  async function handleInvFile(file){
+    if(!ensureXLSX()) return;
+    try{
+      const aoa=toAOA(await readWB(file));
+      if(!aoa.length){alert('الملف فارغ');return;}
+      invRaw={headers:aoa[0].map(h=>String(h||'').trim()),rows:aoa.slice(1),name:file.name};
+      const ok=document.getElementById('invOk');
+      ok.style.display='block';
+      ok.innerHTML='<div class="fileok"><span>✓ '+escapeHtml(file.name)+' — '+invRaw.rows.length+' صف</span></div>';
+      document.getElementById('invCols').style.display='block';
+      fillCols(invRaw.headers,IDS_MATCH);
+    }catch(e){console.error(e);alert('تعذّرت قراءة الملف. تأكد أنه ملف إكسل أو CSV صحيح.');}
+  }
+  document.getElementById('invApplyBtn').addEventListener('click',()=>{
+    if(!invRaw) return;
+    const set=buildSet(recordsFromRaw(invRaw,IDS_MATCH),'ملف: '+invRaw.name,true);
+    setInvSource(set,true);
+    document.getElementById('invStatus').textContent='تم الاعتماد — '+set.items.length+' صنف بكمياته';
+  });
+
+  async function handleWantedFile(file){
+    if(!ensureXLSX() && !/\.txt$/i.test(file.name)) return;
+    try{
+      let lines=[];
+      if(/\.txt$/i.test(file.name)){
+        lines=(await file.text()).split(/\r?\n/).map(l=>l.trim()).filter(Boolean);
+      }else{
+        toAOA(await readWB(file)).forEach(r=>{const v=r[0]; if(v!==undefined&&v!==null&&String(v).trim()!=='')lines.push(String(v).trim());});
+      }
+      wantedLines=lines;
+      const ok=document.getElementById('wantedOk');
+      ok.style.display='block';
+      ok.innerHTML='<div class="fileok"><span>✓ '+escapeHtml(file.name)+' — '+lines.length+' صنف</span><button id="chW">تغيير</button></div>';
+      document.getElementById('chW').addEventListener('click',()=>{
+        document.getElementById('fileWanted').value=''; ok.style.display='none'; wantedLines=[]; checkReady();
+      });
+      checkReady();
+    }catch(e){console.error(e);alert('تعذّرت قراءة الملف.');}
+  }
+  const wantedMode=()=>document.querySelector('#page-match .tab.active').dataset.mode;
+  function checkReady(){
+    const ready = wantedMode()==='paste'
+      ? document.getElementById('pasteArea').value.trim().length>0
+      : wantedLines.length>0;
+    document.getElementById('runBtn').disabled=!(ready&&INV.items.length>0);
+  }
+  const badgeLabel=s=> s==='found'?'متوفر': s==='partial'?'يحتاج تأكيد':'غير موجود';
+  // Quantity + unit folded into one cell; "—" when no stock file is loaded.
+  function availQty(v){
+    if(!INV.hasQty) return '—';
+    return v.qty+(v.unit?(' '+escapeHtml(v.unit)):'');
+  }
+  function invLabel(i){
+    const v=INV.items[i];
+    return v.name+' · '+(v.itemNumber||'-')+(INV.hasQty?(' · '+v.qty+(v.unit?(' '+v.unit):'')):'');
+  }
+
+  function renderSummary(){
+    const c={found:0,partial:0,notfound:0}; results.forEach(r=>c[r.status]++);
+    document.getElementById('summary').innerHTML=
+      '<div class="stat"><div class="n">'+results.length+'</div><div class="l">إجمالي المطلوب</div></div>'+
+      '<div class="stat found"><div class="n">'+c.found+'</div><div class="l">متوفرة</div></div>'+
+      '<div class="stat partial"><div class="n">'+c.partial+'</div><div class="l">تحتاج تأكيد</div></div>'+
+      '<div class="stat notfound"><div class="n">'+c.notfound+'</div><div class="l">غير موجودة</div></div>';
+  }
+  function renderResults(){
+    const tb=document.getElementById('resultsBody');
+    const qn=normalizeAr(document.getElementById('search').value.trim());
+    tb.innerHTML=''; let shown=0;
+    results.forEach((r,i)=>{
+      if(activeFilter!=='all'&&r.status!==activeFilter) return;
+      if(qn&&!normalizeAr(r.raw).includes(qn)) return;
+      shown++;
+      const inv=r.chosenIdx>=0?INV.items[r.chosenIdx]:null;
+      const tr=document.createElement('tr');
+      tr.innerHTML=
+        '<td class="mono" style="color:var(--ink-soft)">'+(i+1)+'</td>'+
+        '<td class="req-name"><input type="text" class="reqinput" data-i="'+i+'" value="'+escapeHtml(r.raw)+'" placeholder="اكتب اسم أو رقم الصنف" autocomplete="off"></td>'+
+        '<td class="req-qty">'+escapeHtml(r.qtyDisplay)+'</td>'+
+        '<td><span class="status-pill '+r.status+'">'+badgeLabel(r.status)+'</span></td>'+
+        '<td><input type="text" class="combo-input matchinput" data-i="'+i+'" value="'+(inv?escapeHtml(invLabel(r.chosenIdx)):'')+'" placeholder="— غير موجود — اكتب للبحث" autocomplete="off"></td>'+
+        '<td class="qtycell">'+(inv?availQty(inv):'-')+'</td>'+
+        '<td><button class="iconbtn" data-del="'+i+'" title="حذف الصف">🗑</button></td>';
+      tb.appendChild(tr);
+    });
+    if(!shown) tb.innerHTML='<tr><td colspan="7"><div class="empty">لا نتائج للفلتر الحالي</div></td></tr>';
+
+    tb.querySelectorAll('[data-del]').forEach(b=>b.addEventListener('click',()=>{
+      results.splice(parseInt(b.dataset.del),1); renderSummary(); renderResults();
+    }));
+
+    tb.querySelectorAll('.reqinput').forEach(inp=>{
+      const i=parseInt(inp.dataset.i);
+      attachCombo(inp,()=>INV,(q,set)=>searchSet(set,q,40).map(idx=>({idx})),idx=>{
+        if(idx<0) return;
+        const inv=INV.items[idx];
+        results[i]={raw:inv.name,qtyDisplay:results[i].qtyDisplay,status:'found',candidates:[{idx:idx,score:1}],chosenIdx:idx};
+        renderSummary(); renderResults();
+      },'اختر من المخزون لتعبئة الصف');
+      inp.addEventListener('change',()=>{
+        const v=inp.value.trim();
+        if(!v){results.splice(i,1);}
+        else{const keep=results[i].qtyDisplay; results[i]=computeRowMatch(v); if(results[i].qtyDisplay==='-'&&keep!=='-')results[i].qtyDisplay=keep;}
+        renderSummary(); renderResults();
+      });
+    });
+
+    tb.querySelectorAll('.matchinput').forEach(inp=>{
+      const i=parseInt(inp.dataset.i);
+      attachCombo(inp,()=>INV,(q,set)=>{
+        const cur=results[i].chosenIdx>=0?invLabel(results[i].chosenIdx):'';
+        const typed=q.trim();
+        let items;
+        if(!typed||typed===cur){
+          items=results[i].candidates.map(c=>({idx:c.idx}));
+          if(!items.length) items=searchSet(set,results[i].raw,30).map(idx=>({idx}));
+        } else items=searchSet(set,typed,50).map(idx=>({idx}));
+        return [{clear:true}].concat(items);
+      },idx=>{
+        results[i].chosenIdx=idx;
+        results[i].status=idx>=0?'found':'notfound';
+        if(idx>=0&&!results[i].candidates.some(c=>c.idx===idx)) results[i].candidates.unshift({idx:idx,score:1});
+        renderSummary(); renderResults();
+      },'كل الأصناف المطابقة (يدعم *نص*نص*)');
+    });
+  }
+
+  document.querySelectorAll('#page-match .tab').forEach(t=>t.addEventListener('click',()=>{
+    document.querySelectorAll('#page-match .tab').forEach(x=>x.classList.remove('active'));
+    t.classList.add('active');
+    document.getElementById('pasteMode').style.display=t.dataset.mode==='paste'?'block':'none';
+    document.getElementById('fileMode').style.display=t.dataset.mode==='file'?'block':'none';
+    checkReady();
+  }));
+  document.getElementById('pasteArea').addEventListener('input',checkReady);
+  setupDrop(document.getElementById('dropInv'),document.getElementById('fileInv'),handleInvFile);
+  setupDrop(document.getElementById('dropWanted'),document.getElementById('fileWanted'),handleWantedFile);
+
+  document.getElementById('runBtn').addEventListener('click',()=>{
+    if(wantedMode()==='paste') wantedLines=document.getElementById('pasteArea').value.split(/\r?\n/).map(l=>l.trim()).filter(Boolean);
+    const st=document.getElementById('runStatus');
+    st.innerHTML='<span class="spin"></span> جاري المطابقة...';
+    setTimeout(()=>{
+      results=wantedLines.map(computeRowMatch);
+      document.getElementById('step3').classList.remove('disabled');
+      renderSummary(); renderResults(); st.textContent='';
+      document.getElementById('step3').scrollIntoView({behavior:'smooth',block:'start'});
+    },20);
+  });
+  document.getElementById('search').addEventListener('input',renderResults);
+  document.querySelectorAll('.fchip').forEach(c=>c.addEventListener('click',()=>{
+    document.querySelectorAll('.fchip').forEach(x=>x.classList.remove('on'));
+    c.classList.add('on'); activeFilter=c.dataset.k; renderResults();
+  }));
+  document.getElementById('addRowBtn').addEventListener('click',()=>{
+    results.push({raw:'',qtyDisplay:'-',status:'notfound',candidates:[],chosenIdx:-1});
+    activeFilter='all';
+    document.querySelectorAll('.fchip').forEach(x=>x.classList.toggle('on',x.dataset.k==='all'));
+    renderSummary(); renderResults();
+    const ins=document.querySelectorAll('#resultsBody .reqinput');
+    if(ins.length) ins[ins.length-1].focus();
+  });
+  document.getElementById('exportBtn').addEventListener('click',async()=>{
+    const aoa=[['#','الصنف المطلوب','الكمية المطلوبة','الحالة','رقم الصنف','الصنف بالمخزون','الكمية المتاحة']];
+    results.forEach((r,i)=>{
+      const inv=r.chosenIdx>=0?INV.items[r.chosenIdx]:null;
+      let q='-';
+      if(inv) q = INV.hasQty ? (inv.qty+(inv.unit?(' '+inv.unit):'')) : 'لم يتم رفع ملف مخزون';
+      aoa.push([i+1,r.raw,r.qtyDisplay,badgeLabel(r.status),inv?inv.itemNumber:'-',inv?inv.name:'-',q]);
+    });
+    await exportAOA('نتيجة_المطابقة.xlsx','نتيجة المطابقة',aoa,[{wch:5},{wch:32},{wch:16},{wch:15},{wch:12},{wch:42},{wch:20}]);
+  });
+
+  /* ================= MANUAL ================= */
+  let manualRows=[{itemNumber:'',name:''}];
+  function renderManual(){
+    const tb=document.getElementById('manualBody');
+    if(!tb) return;
+    tb.innerHTML='';
+    manualRows.forEach((row,i)=>{
+      const tr=document.createElement('tr');
+      tr.innerHTML=
+        '<td><input type="text" class="mnum" data-i="'+i+'" value="'+escapeHtml(row.itemNumber)+'" placeholder="رقم" autocomplete="off"></td>'+
+        '<td><input type="text" class="mname" data-i="'+i+'" value="'+escapeHtml(row.name)+'" placeholder="اسم الصنف" autocomplete="off"></td>'+
+        '<td><button class="iconbtn" data-mdel="'+i+'" title="حذف">🗑</button></td>';
+      tb.appendChild(tr);
+    });
+    tb.querySelectorAll('[data-mdel]').forEach(b=>b.addEventListener('click',()=>{
+      manualRows.splice(parseInt(b.dataset.mdel),1);
+      if(!manualRows.length) manualRows.push({itemNumber:'',name:''});
+      renderManual();
+    }));
+    function fillRow(i,idx){
+      const inv=CAT.items[idx];
+      manualRows[i]={itemNumber:String(inv.itemNumber||''),name:inv.name};
+      // adding a blank row keeps the flow going: pick, land on the next row
+      if(i===manualRows.length-1) manualRows.push({itemNumber:'',name:''});
+      renderManual();
+      const next=document.querySelector('#manualBody .mnum[data-i="'+(i+1)+'"]');
+      if(next) next.focus();
+    }
+    // Always reads CAT, so changing the stock source can never disable it.
+    tb.querySelectorAll('.mnum').forEach(inp=>{
+      const i=parseInt(inp.dataset.i);
+      inp.addEventListener('input',()=>{manualRows[i].itemNumber=inp.value;});
+      attachCombo(inp,()=>CAT,(q,set)=>searchSet(set,q,40).map(idx=>({idx})),idx=>{if(idx>=0)fillRow(i,idx);},'اقتراحات من الكتالوج المخزّن');
+    });
+    tb.querySelectorAll('.mname').forEach(inp=>{
+      const i=parseInt(inp.dataset.i);
+      inp.addEventListener('input',()=>{manualRows[i].name=inp.value;});
+      attachCombo(inp,()=>CAT,(q,set)=>searchSet(set,q,40).map(idx=>({idx})),idx=>{if(idx>=0)fillRow(i,idx);},'اقتراحات من الكتالوج المخزّن');
+    });
+  }
+  document.getElementById('manualAddRowBtn').addEventListener('click',()=>{
+    manualRows.push({itemNumber:'',name:''}); renderManual();
+    const ins=document.querySelectorAll('#manualBody .mnum');
+    if(ins.length) ins[ins.length-1].focus();
+  });
+  document.getElementById('manualExportBtn').addEventListener('click',async()=>{
+    const aoa=[['رقم الصنف','اسم الصنف']];
+    manualRows.forEach(r=>{if(r.name.trim())aoa.push([r.itemNumber,r.name]);});
+    if(aoa.length===1){alert('ما في أصناف مدخلة بعد');return;}
+    await exportAOA('اصناف_يدوي.xlsx','أصناف',aoa,[{wch:16},{wch:44}]);
+  });
+
+  /* ================= FEEDBACK ================= */
+  document.getElementById('fbForm').addEventListener('submit',async e=>{
+    e.preventDefault();
+    const msgEl=document.getElementById('fbMsg'), btn=document.getElementById('fbSubmitBtn');
+    const payload={
+      name:document.getElementById('fbName').value.trim(),
+      type:document.getElementById('fbType').value,
+      message:document.getElementById('fbMessage').value.trim(),
+      email:document.getElementById('fbEmail').value.trim()
+    };
+    if(!payload.message) return;
+    btn.disabled=true; btn.textContent='...جاري الإرسال'; msgEl.className='fb-msg';
+    try{
+      const resp=await fetch('/api/feedback',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
+      const data=await resp.json().catch(()=>({}));
+      if(resp.ok&&data.ok){
+        msgEl.textContent='تم استلام ملاحظتك، شكراً لك ✅';
+        msgEl.className='fb-msg ok'; e.target.reset();
+      } else throw new Error(data.error||'failed');
+    }catch(err){
+      console.error(err);
+      msgEl.textContent='تعذّر الإرسال حالياً. تأكد من الاتصال بالإنترنت وحاول مرة ثانية.';
+      msgEl.className='fb-msg err';
+    }
+    btn.disabled=false; btn.textContent='إرسال';
+  });
+
+  /* ================= boot ================= */
+  function loadCatalog(){
+    const raw=window.ITEM_CATALOG;
+    if(!Array.isArray(raw)||!raw.length){
+      document.getElementById('catBadge').textContent='⚠ تعذّر تحميل الكتالوج المخزّن';
+      document.getElementById('diagBox').innerHTML=
+        '<div class="diagbox"><b>⚠ ملف الكتالوج (catalog.js) لم يتم تحميله.</b>'
+        +'تحقق من هذا مباشرة: افتح <code>your-site.pages.dev/catalog.js</code> بالمتصفح — '
+        +'المفروض يطلع نص JS خام يبدأ بـ <code>window.ITEM_CATALOG=</code>. لو طلعت صفحة 404، '
+        +'يعني الملف ما انرفع مع الموقع على GitHub/Cloudflare Pages. تقدر كمان تفتح أدوات المطوّر '
+        +'(F12) → تبويب Console وتشوف إذا في خطأ أحمر متعلق بـ catalog.js.'
+        +'<br><br>لحد ما تحله، رفع ملف مخزون يدوياً بصفحة المطابقة رح يخليك تكمل شغلك عادي.</div>';
+      return;
+    }
+    CAT=buildSet(raw.map(r=>({itemNumber:r[0],name:r[1],qty:0,unit:''})),'الكتالوج المخزّن',false);
+    INV=CAT;
+    document.getElementById('catBadge').textContent='✓ '+CAT.items.length.toLocaleString('en-US')+' صنف مخزّن وجاهز للبحث فوراً';
+    document.getElementById('catSrcTag').textContent='الكتالوج المخزّن ('+CAT.items.length.toLocaleString('en-US')+' صنف)';
+    document.getElementById('invSrcTag').textContent='الكتالوج المخزّن';
+    renderManual();
+    checkReady();
+  }
+  if(typeof XLSX==='undefined'){
+    window.addEventListener('load',()=>{
+      setTimeout(()=>{
+        if(typeof XLSX==='undefined'){
+          const box=document.getElementById('diagBox');
+          box.innerHTML+=
+            '<div class="diagbox"><b>⚠ مكتبة قراءة ملفات إكسل (XLSX) لم تُحمَّل.</b>'
+            +'رفع ملفات إكسل/CSV وتصدير النتائج كإكسل مش رح يشتغلوا لحد ما تنحل. '
+            +'الغالب السبب شبكي: جدار حماية شركة أو حاجب إعلانات يمنع الوصول لـ '
+            +'<code>cdnjs.cloudflare.com</code> و<code>cdn.jsdelivr.net</code>. '
+            +'جرّب تعطيل الحاجب لهالموقع أو افتحه من شبكة ثانية (بيانات الجوال مثلاً) وأعد التحميل.</div>';
+        }
+      },1200);
+    });
+  }
+  renderManual();
+  loadCatalog();
+
+})();
+</script>
+</body>
+</html>
