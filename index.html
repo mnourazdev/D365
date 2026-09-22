@@ -7,10 +7,8 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;900&family=IBM+Plex+Mono:wght@500&display=swap" rel="stylesheet">
-<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"
-        onerror="this.onerror=null;var s=document.createElement('script');s.src='https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js';document.head.appendChild(s);"></script>
-<script src="catalog.js"
-        onerror="window.__CATALOG_LOAD_FAILED__=true;"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="catalog.js"></script>
 <style>
   :root{
     --bg:#F1F3EF; --panel:#FFFFFF; --ink:#16241F; --ink-soft:#4B5D55; --line:#D8DED7;
@@ -59,9 +57,6 @@
   .hero h1{font-size:27px; margin:0 0 8px; font-weight:900;}
   .hero p{color:var(--ink-soft); font-size:14.5px; max-width:680px; margin:0 0 10px;}
   .catbadge{display:inline-block; background:var(--found-bg); color:var(--found-ink); padding:6px 14px; border-radius:20px; font-size:12.5px; font-weight:700; margin-bottom:24px;}
-  .diagbox{background:var(--notfound-bg); color:var(--notfound-ink); border:1px solid var(--danger); border-radius:10px; padding:16px 18px; margin-bottom:20px; font-size:13.5px; line-height:1.8;}
-  .diagbox b{display:block; margin-bottom:4px;}
-  .diagbox code{background:rgba(0,0,0,.08); padding:1px 5px; border-radius:4px;}
   .cards{display:grid; grid-template-columns:repeat(3,1fr); gap:16px;}
   @media (max-width:820px){.cards{grid-template-columns:1fr;}}
   .card{background:var(--panel); border:1px solid var(--line); border-radius:12px; padding:22px; box-shadow:var(--shadow); cursor:pointer; transition:.15s;}
@@ -139,6 +134,7 @@
   .status-pill.partial{background:var(--partial-bg); color:var(--partial-ink);}
   .status-pill.notfound{background:var(--notfound-bg); color:var(--notfound-ink);}
   .qtycell{font-family:'IBM Plex Mono',monospace; font-weight:700;}
+  .confcell{color:var(--ink-soft); font-size:11.5px;}
   .tablewrap{overflow-x:auto; overflow-y:visible; border-radius:8px;}
   .footnote{color:var(--ink-soft); font-size:12px; margin-top:10px;}
   .empty{text-align:center; padding:50px 20px; color:var(--ink-soft);}
@@ -149,13 +145,12 @@
   .combo-pop{position:fixed; z-index:200; background:var(--panel); border:1px solid var(--line); border-radius:9px; box-shadow:0 10px 30px rgba(0,0,0,.22); max-height:330px; overflow-y:auto; min-width:320px;}
   .combo-pop[hidden]{display:none;}
   .combo-head{padding:7px 11px; font-size:11.5px; color:var(--ink-soft); border-bottom:1px solid var(--line); position:sticky; top:0; background:var(--panel);}
-  .combo-item{padding:8px 11px; cursor:pointer; font-size:12.5px; border-bottom:1px solid var(--line); display:block;}
+  .combo-item{padding:8px 11px; cursor:pointer; font-size:12.5px; border-bottom:1px solid var(--line); display:flex; gap:10px; align-items:baseline;}
   .combo-item:last-child{border-bottom:none;}
   .combo-item.hi{background:var(--chip-bg);}
-  .combo-item .nm{font-weight:700; display:block;}
-  .combo-item .meta{display:flex; gap:10px; margin-top:3px;}
-  .combo-item .num{font-family:'IBM Plex Mono',monospace; color:var(--ink-soft); font-size:11px;}
-  .combo-item .qt{font-family:'IBM Plex Mono',monospace; font-size:11px; color:var(--found-ink); font-weight:700;}
+  .combo-item .num{font-family:'IBM Plex Mono',monospace; color:var(--ink-soft); font-size:11.5px; flex:none; min-width:52px;}
+  .combo-item .nm{font-weight:700; flex:1;}
+  .combo-item .qt{font-family:'IBM Plex Mono',monospace; font-size:11.5px; color:var(--found-ink); flex:none;}
   .combo-item.zero .qt{color:var(--notfound-ink);}
   .combo-item.clearopt{color:var(--notfound-ink); font-weight:700;}
   .combo-empty{padding:14px; font-size:12.5px; color:var(--ink-soft); text-align:center;}
@@ -193,7 +188,6 @@
       <h1>أداة مطابقة الأصناف والمخزون</h1>
       <p>قائمة الأصناف مخزّنة داخل الموقع — البحث يشتغل فوراً بدون رفع أي ملف. رفع ملف المخزون اختياري، فقط لو بدك تعرض الكميات المتاحة.</p>
       <div class="catbadge" id="catBadge">جاري تحميل كتالوج الأصناف...</div>
-      <div id="diagBox"></div>
     </div>
     <div class="cards">
       <div class="card" data-goto="match">
@@ -277,14 +271,13 @@
         <table>
           <thead><tr>
             <th>#</th><th style="min-width:210px">الصنف المطلوب</th><th>الكمية المطلوبة</th><th>الحالة</th>
-            <th style="min-width:250px">الصنف بالمخزون</th><th>الكمية المتاحة</th><th></th>
+            <th style="min-width:250px">الصنف بالمخزون</th><th>الكمية المتاحة</th><th>الوحدة</th><th>الثقة</th><th></th>
           </tr></thead>
           <tbody id="resultsBody"></tbody>
         </table>
       </div>
       <div class="footnote">
-        الحقلان فيهما بحث فوري: نص (<code>فستق براف</code>)، وايلد كارد بنمط D365 (<code>*فستق*براف*</code>)، أو رقم صنف. الأسهم ↑↓ للتنقل وEnter للاختيار. أي اختيار يدوي يحوّل الحالة إلى "متوفر".<br>
-        بدون رفع ملف، المطابقة تتم من الكتالوج المخزّن وعمود الكمية يظهر <code>—</code>. برفع ملف مخزون، كل صنف بقائمة الاختيار بيظهر معه كميته المتاحة.
+        الحقلان فيهما بحث فوري بالكتالوج: نص (<code>فستق براف</code>)، وايلد كارد بنمط D365 (<code>*فستق*براف*</code>)، أو رقم صنف. الأسهم ↑↓ للتنقل وEnter للاختيار. أي اختيار يدوي يحوّل الحالة إلى "متوفر".
       </div>
     </div>
   </section>
@@ -298,15 +291,17 @@
       </div>
       <div class="tablewrap">
         <table class="manual-table">
-          <thead><tr><th style="width:20%">رقم الصنف</th><th>اسم الصنف</th><th style="width:5%"></th></tr></thead>
+          <thead><tr><th style="width:17%">رقم الصنف</th><th>اسم الصنف</th><th style="width:13%">الكمية</th><th style="width:13%">الوحدة</th><th style="width:5%"></th></tr></thead>
           <tbody id="manualBody"></tbody>
         </table>
       </div>
       <div class="btnrow">
         <button class="secondary" id="manualAddRowBtn">+ إضافة صف</button>
         <button class="secondary" id="manualExportBtn">⬇ تحميل اكسل</button>
+        <button class="primary" id="manualUseBtn" style="display: none;">استخدام كمخزون بصفحة المطابقة</button>
+        <span id="manualStatus" style="font-size:12.5px;color:var(--ink-soft);"></span>
       </div>
-      <div class="footnote">اختيار صنف من الاقتراحات بيعبّي الصف وبينقلك لصف جديد مباشرة.</div>
+      <div class="footnote">استخدام الصفوف كمخزون بيغيّر مصدر الكميات بصفحة المطابقة فقط — بحث الكتالوج بيضل شغّال كالعادة.</div>
     </div>
   </section>
 
@@ -499,7 +494,6 @@
   }
 
   async function exportAOA(filename,sheetName,aoa,cols){
-    if(!ensureXLSX()) return;
     const wb=XLSX.utils.book_new(), ws=XLSX.utils.aoa_to_sheet(aoa);
     if(cols) ws['!cols']=cols;
     XLSX.utils.book_append_sheet(wb,ws,sheetName);
@@ -537,9 +531,9 @@
       const inv=set.items[it.idx];
       const qtyTxt=set.hasQty?(inv.qty+(inv.unit?(' '+escapeHtml(inv.unit)):'')):'';
       html+='<div class="combo-item '+(set.hasQty&&inv.qty<=0?'zero':'')+' '+(i===popHi?'hi':'')+'" data-i="'+i+'">'
+          +'<span class="num">'+escapeHtml(inv.itemNumber||'-')+'</span>'
           +'<span class="nm">'+highlight(inv.name,query)+'</span>'
-          +'<span class="meta"><span class="num">'+escapeHtml(inv.itemNumber||'-')+'</span>'
-          +(qtyTxt?'<span class="qt">'+qtyTxt+'</span>':'')+'</span></div>';
+          +'<span class="qt">'+qtyTxt+'</span></div>';
     });
     pop.innerHTML=html;
     pop.querySelectorAll('.combo-item').forEach(el=>{
@@ -594,11 +588,6 @@
   gotoPage('home');
 
   /* ================= file helpers ================= */
-  function ensureXLSX(){
-    if(typeof XLSX!=='undefined') return true;
-    alert('تعذّر تحميل مكتبة قراءة ملفات الإكسل (XLSX) — على الأغلب سبب شبكي (جدار حماية أو حاجب إعلانات يمنع الوصول لـ cdnjs.cloudflare.com أو cdn.jsdelivr.net). تأكد من اتصال الإنترنت أو جرّب متصفح/شبكة ثانية.');
-    return false;
-  }
   function readWB(file){
     return new Promise((res,rej)=>{
       const r=new FileReader();
@@ -607,16 +596,11 @@
     });
   }
   const toAOA=wb=>XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]],{header:1,raw:true,defval:''});
-  // Priority-ordered: the first keyword (in array order) that matches ANY
-  // header wins, regardless of whether a later keyword would match a longer
-  // substring elsewhere. This guarantees "Available physical" is picked over
-  // "Total available" etc. whenever both exist, because it is listed first.
   function guessCol(headers,kws){
-    for(const k of kws){
-      const i=headers.findIndex(h=>String(h||'').toLowerCase().includes(k));
-      if(i>=0) return i;
-    }
-    return -1;
+    let best=-1,bs=0;
+    headers.forEach((h,i)=>{const hn=String(h||'').toLowerCase();
+      kws.forEach(k=>{if(hn.includes(k)&&k.length>bs){bs=k.length;best=i;}});});
+    return best;
   }
   const COL_KWS={
     num:['رقم الصنف','item number','item code','sku','رقم','code','item'],
@@ -671,10 +655,10 @@
     document.getElementById('invCols').style.display='none';
     document.getElementById('fileInv').value=''; invRaw=null;
     document.getElementById('invStatus').textContent='';
+    document.getElementById('manualStatus').textContent='';
   });
 
   async function handleInvFile(file){
-    if(!ensureXLSX()) return;
     try{
       const aoa=toAOA(await readWB(file));
       if(!aoa.length){alert('الملف فارغ');return;}
@@ -684,7 +668,7 @@
       ok.innerHTML='<div class="fileok"><span>✓ '+escapeHtml(file.name)+' — '+invRaw.rows.length+' صف</span></div>';
       document.getElementById('invCols').style.display='block';
       fillCols(invRaw.headers,IDS_MATCH);
-    }catch(e){console.error(e);alert('تعذّرت قراءة الملف. تأكد أنه ملف إكسل أو CSV صحيح.');}
+    }catch(e){console.error(e);alert('تعذّرت قراءة الملف.');}
   }
   document.getElementById('invApplyBtn').addEventListener('click',()=>{
     if(!invRaw) return;
@@ -694,7 +678,6 @@
   });
 
   async function handleWantedFile(file){
-    if(!ensureXLSX() && !/\.txt$/i.test(file.name)) return;
     try{
       let lines=[];
       if(/\.txt$/i.test(file.name)){
@@ -720,11 +703,6 @@
     document.getElementById('runBtn').disabled=!(ready&&INV.items.length>0);
   }
   const badgeLabel=s=> s==='found'?'متوفر': s==='partial'?'يحتاج تأكيد':'غير موجود';
-  // Quantity + unit folded into one cell; "—" when no stock file is loaded.
-  function availQty(v){
-    if(!INV.hasQty) return '—';
-    return v.qty+(v.unit?(' '+escapeHtml(v.unit)):'');
-  }
   function invLabel(i){
     const v=INV.items[i];
     return v.name+' · '+(v.itemNumber||'-')+(INV.hasQty?(' · '+v.qty+(v.unit?(' '+v.unit):'')):'');
@@ -747,6 +725,7 @@
       if(qn&&!normalizeAr(r.raw).includes(qn)) return;
       shown++;
       const inv=r.chosenIdx>=0?INV.items[r.chosenIdx]:null;
+      const cc=r.candidates.find(c=>c.idx===r.chosenIdx);
       const tr=document.createElement('tr');
       tr.innerHTML=
         '<td class="mono" style="color:var(--ink-soft)">'+(i+1)+'</td>'+
@@ -754,11 +733,13 @@
         '<td class="req-qty">'+escapeHtml(r.qtyDisplay)+'</td>'+
         '<td><span class="status-pill '+r.status+'">'+badgeLabel(r.status)+'</span></td>'+
         '<td><input type="text" class="combo-input matchinput" data-i="'+i+'" value="'+(inv?escapeHtml(invLabel(r.chosenIdx)):'')+'" placeholder="— غير موجود — اكتب للبحث" autocomplete="off"></td>'+
-        '<td class="qtycell">'+(inv?availQty(inv):'-')+'</td>'+
+        '<td class="qtycell">'+(inv?(INV.hasQty?inv.qty:'—'):'-')+'</td>'+
+        '<td>'+(inv?escapeHtml(inv.unit||'-'):'-')+'</td>'+
+        '<td class="confcell">'+(r.chosenIdx>=0?Math.round((cc?cc.score:1)*100)+'%':'-')+'</td>'+
         '<td><button class="iconbtn" data-del="'+i+'" title="حذف الصف">🗑</button></td>';
       tb.appendChild(tr);
     });
-    if(!shown) tb.innerHTML='<tr><td colspan="7"><div class="empty">لا نتائج للفلتر الحالي</div></td></tr>';
+    if(!shown) tb.innerHTML='<tr><td colspan="9"><div class="empty">لا نتائج للفلتر الحالي</div></td></tr>';
 
     tb.querySelectorAll('[data-del]').forEach(b=>b.addEventListener('click',()=>{
       results.splice(parseInt(b.dataset.del),1); renderSummary(); renderResults();
@@ -836,18 +817,17 @@
     if(ins.length) ins[ins.length-1].focus();
   });
   document.getElementById('exportBtn').addEventListener('click',async()=>{
-    const aoa=[['#','الصنف المطلوب','الكمية المطلوبة','الحالة','رقم الصنف','الصنف بالمخزون','الكمية المتاحة']];
+    const aoa=[['#','الصنف المطلوب','الكمية المطلوبة','الحالة','رقم الصنف','الصنف بالمخزون','الكمية المتاحة','الوحدة']];
     results.forEach((r,i)=>{
       const inv=r.chosenIdx>=0?INV.items[r.chosenIdx]:null;
-      let q='-';
-      if(inv) q = INV.hasQty ? (inv.qty+(inv.unit?(' '+inv.unit):'')) : 'لم يتم رفع ملف مخزون';
-      aoa.push([i+1,r.raw,r.qtyDisplay,badgeLabel(r.status),inv?inv.itemNumber:'-',inv?inv.name:'-',q]);
+      aoa.push([i+1,r.raw,r.qtyDisplay,badgeLabel(r.status),inv?inv.itemNumber:'-',inv?inv.name:'-',
+                inv?(INV.hasQty?inv.qty:'غير متوفرة بالكتالوج'):'-',inv?(inv.unit||'-'):'-']);
     });
-    await exportAOA('نتيجة_المطابقة.xlsx','نتيجة المطابقة',aoa,[{wch:5},{wch:32},{wch:16},{wch:15},{wch:12},{wch:42},{wch:20}]);
+    await exportAOA('نتيجة_المطابقة.xlsx','نتيجة المطابقة',aoa,[{wch:5},{wch:32},{wch:16},{wch:15},{wch:12},{wch:42},{wch:18},{wch:10}]);
   });
 
   /* ================= MANUAL ================= */
-  let manualRows=[{itemNumber:'',name:''}];
+  let manualRows=[{itemNumber:'',name:'',qty:'',unit:''}];
   function renderManual(){
     const tb=document.getElementById('manualBody');
     if(!tb) return;
@@ -857,22 +837,74 @@
       tr.innerHTML=
         '<td><input type="text" class="mnum" data-i="'+i+'" value="'+escapeHtml(row.itemNumber)+'" placeholder="رقم" autocomplete="off"></td>'+
         '<td><input type="text" class="mname" data-i="'+i+'" value="'+escapeHtml(row.name)+'" placeholder="اسم الصنف" autocomplete="off"></td>'+
+        '<td><input type="text" data-f="qty" data-i="'+i+'" value="'+escapeHtml(row.qty)+'" placeholder="0"></td>'+
+        '<td><input type="text" data-f="unit" data-i="'+i+'" value="'+escapeHtml(row.unit)+'" placeholder="وحدة"></td>'+
         '<td><button class="iconbtn" data-mdel="'+i+'" title="حذف">🗑</button></td>';
       tb.appendChild(tr);
     });
+    tb.querySelectorAll('input[data-f]').forEach(inp=>inp.addEventListener('input',()=>{
+      manualRows[parseInt(inp.dataset.i)][inp.dataset.f]=inp.value;
+    }));
+    // ArrowDown: إنشاء/الانتقال للصف التالي فقط عندما لا تكون قائمة الاقتراحات مفتوحة
+tb.querySelectorAll('input').forEach(inp=>{
+  inp.addEventListener('keydown',e=>{
+    if(e.key !== 'ArrowDown') return;
+
+    // إذا قائمة الاقتراحات مفتوحة، اترك attachCombo يتعامل مع ArrowDown
+    if(!pop.hidden && popOwner===inp) return;
+
+    const i=parseInt(inp.dataset.i);
+    const row=manualRows[i];
+
+    const hasData =
+      String(row.itemNumber || '').trim() !== '' ||
+      String(row.name || '').trim() !== '' ||
+      String(row.qty || '').trim() !== '' ||
+      String(row.unit || '').trim() !== '';
+
+    // الصف فارغ → لا تعمل شيء
+    if(!hasData) return;
+
+    e.preventDefault();
+
+    // آخر صف → أنشئ صف جديد
+    if(i === manualRows.length - 1){
+      manualRows.push({
+        itemNumber:'',
+        name:'',
+        qty:'',
+        unit:''
+      });
+
+      renderManual();
+
+      const newInput=document.querySelector(
+        '#manualBody .mnum[data-i="'+(manualRows.length-1)+'"]'
+      );
+
+      if(newInput) newInput.focus();
+    }else{
+      // يوجد صف بعده → انتقل إليه
+      const nextInput=document.querySelector(
+        '#manualBody .mnum[data-i="'+(i+1)+'"]'
+      );
+
+      if(nextInput) nextInput.focus();
+    }
+  });
+});
     tb.querySelectorAll('[data-mdel]').forEach(b=>b.addEventListener('click',()=>{
       manualRows.splice(parseInt(b.dataset.mdel),1);
-      if(!manualRows.length) manualRows.push({itemNumber:'',name:''});
+      if(!manualRows.length) manualRows.push({itemNumber:'',name:'',qty:'',unit:''});
       renderManual();
     }));
     function fillRow(i,idx){
       const inv=CAT.items[idx];
-      manualRows[i]={itemNumber:String(inv.itemNumber||''),name:inv.name};
-      // adding a blank row keeps the flow going: pick, land on the next row
-      if(i===manualRows.length-1) manualRows.push({itemNumber:'',name:''});
+      manualRows[i]={itemNumber:String(inv.itemNumber||''),name:inv.name,
+                     qty:manualRows[i].qty, unit:manualRows[i].unit||inv.unit||''};
       renderManual();
-      const next=document.querySelector('#manualBody .mnum[data-i="'+(i+1)+'"]');
-      if(next) next.focus();
+      const qi=document.querySelector('#manualBody input[data-f="qty"][data-i="'+i+'"]');
+      if(qi) qi.focus();
     }
     // Always reads CAT, so changing the stock source can never disable it.
     tb.querySelectorAll('.mnum').forEach(inp=>{
@@ -887,15 +919,23 @@
     });
   }
   document.getElementById('manualAddRowBtn').addEventListener('click',()=>{
-    manualRows.push({itemNumber:'',name:''}); renderManual();
+    manualRows.push({itemNumber:'',name:'',qty:'',unit:''}); renderManual();
     const ins=document.querySelectorAll('#manualBody .mnum');
     if(ins.length) ins[ins.length-1].focus();
   });
   document.getElementById('manualExportBtn').addEventListener('click',async()=>{
-    const aoa=[['رقم الصنف','اسم الصنف']];
-    manualRows.forEach(r=>{if(r.name.trim())aoa.push([r.itemNumber,r.name]);});
+    const aoa=[['رقم الصنف','اسم الصنف','الكمية','الوحدة']];
+    manualRows.forEach(r=>{if(r.name.trim())aoa.push([r.itemNumber,r.name,r.qty,r.unit]);});
     if(aoa.length===1){alert('ما في أصناف مدخلة بعد');return;}
-    await exportAOA('اصناف_يدوي.xlsx','أصناف',aoa,[{wch:16},{wch:44}]);
+    await exportAOA('اصناف_يدوي.xlsx','أصناف',aoa,[{wch:14},{wch:36},{wch:12},{wch:10}]);
+  });
+  document.getElementById('manualUseBtn').addEventListener('click',()=>{
+    const recs=manualRows.filter(r=>r.name.trim());
+    if(!recs.length){alert('ما في أصناف مدخلة بعد');return;}
+    const set=buildSet(recs,'أصناف مُدخلة يدوياً',true);
+    setInvSource(set,true);
+    document.getElementById('manualStatus').textContent='تم — '+set.items.length+' صنف صاروا مصدر المخزون';
+    gotoPage('match');
   });
 
   /* ================= FEEDBACK ================= */
@@ -929,14 +969,7 @@
   function loadCatalog(){
     const raw=window.ITEM_CATALOG;
     if(!Array.isArray(raw)||!raw.length){
-      document.getElementById('catBadge').textContent='⚠ تعذّر تحميل الكتالوج المخزّن';
-      document.getElementById('diagBox').innerHTML=
-        '<div class="diagbox"><b>⚠ ملف الكتالوج (catalog.js) لم يتم تحميله.</b>'
-        +'تحقق من هذا مباشرة: افتح <code>your-site.pages.dev/catalog.js</code> بالمتصفح — '
-        +'المفروض يطلع نص JS خام يبدأ بـ <code>window.ITEM_CATALOG=</code>. لو طلعت صفحة 404، '
-        +'يعني الملف ما انرفع مع الموقع على GitHub/Cloudflare Pages. تقدر كمان تفتح أدوات المطوّر '
-        +'(F12) → تبويب Console وتشوف إذا في خطأ أحمر متعلق بـ catalog.js.'
-        +'<br><br>لحد ما تحله، رفع ملف مخزون يدوياً بصفحة المطابقة رح يخليك تكمل شغلك عادي.</div>';
+      document.getElementById('catBadge').textContent='تعذّر تحميل الكتالوج المخزّن — ارفع ملف مخزون يدوياً';
       return;
     }
     CAT=buildSet(raw.map(r=>({itemNumber:r[0],name:r[1],qty:0,unit:''})),'الكتالوج المخزّن',false);
@@ -946,21 +979,6 @@
     document.getElementById('invSrcTag').textContent='الكتالوج المخزّن';
     renderManual();
     checkReady();
-  }
-  if(typeof XLSX==='undefined'){
-    window.addEventListener('load',()=>{
-      setTimeout(()=>{
-        if(typeof XLSX==='undefined'){
-          const box=document.getElementById('diagBox');
-          box.innerHTML+=
-            '<div class="diagbox"><b>⚠ مكتبة قراءة ملفات إكسل (XLSX) لم تُحمَّل.</b>'
-            +'رفع ملفات إكسل/CSV وتصدير النتائج كإكسل مش رح يشتغلوا لحد ما تنحل. '
-            +'الغالب السبب شبكي: جدار حماية شركة أو حاجب إعلانات يمنع الوصول لـ '
-            +'<code>cdnjs.cloudflare.com</code> و<code>cdn.jsdelivr.net</code>. '
-            +'جرّب تعطيل الحاجب لهالموقع أو افتحه من شبكة ثانية (بيانات الجوال مثلاً) وأعد التحميل.</div>';
-        }
-      },1200);
-    });
   }
   renderManual();
   loadCatalog();
