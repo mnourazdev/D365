@@ -1,11 +1,11 @@
 # أداة الأصناف والمخزون
 
-موقع لمطابقة قائمة أصناف مطلوبة مع المخزون. **كتالوج الأصناف (7,553 صنف) مخزّن داخل الموقع** — البحث والاقتراحات تشتغل فوراً بدون رفع أي ملف. معالجة الملفات تتم بالكامل داخل متصفح المستخدم — لا ترفع لأي سيرفر. الجزء الوحيد الذي يستخدم السيرفر هو نموذج الملاحظات ولوحة الأدمن.
+موقع لمطابقة قائمة أصناف مطلوبة مع المخزون. **كتالوج الأصناف (7,598 صنف) مخزّن داخل الموقع** — البحث والاقتراحات تشتغل فوراً بدون رفع أي ملف. معالجة الملفات تتم بالكامل داخل متصفح المستخدم — لا ترفع لأي سيرفر. الجزء الوحيد الذي يستخدم السيرفر هو نموذج الملاحظات ولوحة الأدمن.
 
 ## مصدرا البيانات
 | المصدر | الوصف | يتغيّر؟ |
 |---|---|---|
-| **الكتالوج** (`catalog.js`) | 7,553 صنف بأسمائها وأرقامها، مدمجة بالموقع | ثابت — يُحدَّث بتبديل الملف فقط |
+| **الكتالوج** (`catalog.js`) | 7,598 صنفاً بأسمائها وأرقامها ووحداتها الأساسية والثانوية، مدمجة بالموقع | ثابت — يُحدَّث بتبديل الملف فقط |
 | **المخزون** | مصدر الكميات المعروضة بصفحة المطابقة | الكتالوج افتراضياً، أو ملف مرفوع، أو صفوف الإدخال اليدوي |
 
 الفصل بينهما مقصود: تغيير مصدر المخزون لا يعطّل بحث الكتالوج أبداً.
@@ -23,12 +23,13 @@
 - **نص**: `فستق براف` → يظهر كل صنف يحتوي الكلمتين معاً
 - **وايلد كارد**: `*فستق*براف*` → يحتوي "فستق" ثم "براف" بهذا الترتيب
 - **رقم**: `319008` → بحث برقم الصنف (البادئة أولاً، ثم أي تطابق جزئي)
+- تُوحّد بعض المرادفات والتهجئات الشائعة أثناء المطابقة، مثل `مطحون/بودر/مسحوق` وتهجئات `موزاريلا` و`بارميزان`.
 - الأسهم ↑↓ للتنقل، Enter للاختيار، Esc للإغلاق
 
 ## بنية الملفات
 ```
 index.html                        الموقع الرئيسي
-catalog.js                        كتالوج الأصناف المخزّن (7,553 صنف)
+catalog.js                        كتالوج الأصناف المخزّن (7,598 صنف)
 admin.html                        لوحة الأدمن
 schema.sql                        سكيمة قاعدة البيانات
 functions/api/feedback.js         POST عام لاستقبال الملاحظات
@@ -44,12 +45,19 @@ functions/api/admin/feedback.js   GET/PATCH/DELETE للأدمن فقط
 python3 - << 'PY'
 import pandas as pd, json
 df = pd.read_excel('DynamicsExport.xlsx')          # غيّر اسم الملف
-df = df[['Item number','Product name']].copy()
+df = df[['Item number','Product name','Unit','Unit2']].copy()
 df['Item number']  = df['Item number'].astype(str).str.strip()
 df['Product name'] = df['Product name'].astype(str).str.strip()
 df = df[(df['Product name'] != '') & (df['Product name'].str.lower() != 'nan')]
 df = df.drop_duplicates(subset=['Item number'], keep='first')
-data = [[r['Item number'], r['Product name']] for _, r in df.iterrows()]
+def combine_units(row):
+    units = []
+    for value in (row['Unit'], row['Unit2']):
+        unit = str(value).strip() if pd.notna(value) else ''
+        if unit and unit.casefold() not in {u.casefold() for u in units}:
+            units.append(unit)
+    return ' / '.join(units)
+data = [[r['Item number'], r['Product name'], combine_units(r)] for _, r in df.iterrows()]
 open('catalog.js','w',encoding='utf-8').write(
     'window.ITEM_CATALOG=' + json.dumps(data, ensure_ascii=False, separators=(',',':')) + ';')
 print('عدد الأصناف:', len(data))

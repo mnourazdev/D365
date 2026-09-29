@@ -109,6 +109,9 @@
   .stat.found .n{color:var(--found-ink);}
   .stat.partial .n{color:var(--partial-ink);}
   .stat.notfound .n{color:var(--notfound-ink);}
+  .stat[data-filter]{cursor:pointer;transition:border-color .15s,transform .15s;}
+  .stat[data-filter]:hover{transform:translateY(-1px);border-color:var(--primary);}
+  .stat.active{border-color:var(--primary);box-shadow:0 0 0 2px color-mix(in srgb,var(--primary) 18%,transparent);}
 
   .toolbar{display:flex; justify-content:space-between; align-items:center; gap:12px; margin-bottom:10px; flex-wrap:wrap;}
   .filterchips{display:flex; gap:6px; flex-wrap:wrap;}
@@ -118,6 +121,7 @@
   .fchip[data-k="found"].on{background:var(--found-bg); color:var(--found-ink);}
   .fchip[data-k="partial"].on{background:var(--partial-bg); color:var(--partial-ink);}
   .fchip[data-k="notfound"].on{background:var(--notfound-bg); color:var(--notfound-ink);}
+  .fchip[data-k="no_stock"].on{background:var(--notfound-bg); color:var(--notfound-ink);}
   input#search{max-width:220px;}
 
   table{width:100%; border-collapse:collapse; font-size:13px;}
@@ -133,8 +137,24 @@
   .status-pill.found{background:var(--found-bg); color:var(--found-ink);}
   .status-pill.partial{background:var(--partial-bg); color:var(--partial-ink);}
   .status-pill.notfound{background:var(--notfound-bg); color:var(--notfound-ink);}
+  .status-pill.no_stock{background:var(--notfound-bg); color:var(--notfound-ink);}
   .qtycell{font-family:'IBM Plex Mono',monospace; font-weight:700;}
   .confcell{color:var(--ink-soft); font-size:11.5px;}
+  .result-unit-select{min-width:105px;max-width:150px;font:inherit;font-size:12px;padding:5px;border:1px solid var(--line);border-radius:6px;background:var(--panel);color:var(--ink);}
+  .th-label{display:flex;align-items:center;justify-content:space-between;gap:6px;}
+  .th-filter-toggle{border:0;background:none;color:var(--ink-soft);font-size:14px;cursor:pointer;border-radius:5px;padding:2px 5px;}
+  .th-filter-toggle:hover,.th-filter-toggle[aria-expanded="true"]{background:var(--chip-bg);color:var(--primary);}
+  .th-filter-toggle.has-filter{color:var(--primary);}
+  .th-popover{position:fixed;z-index:300;width:220px;max-height:calc(100vh - 16px);overflow:auto;padding:11px;background:var(--panel);border:1px solid var(--line);border-radius:9px;box-shadow:0 8px 24px rgba(0,0,0,.16);white-space:normal;text-align:right;color:var(--ink);}
+  .th-popover[hidden]{display:none;}
+  .th-popover-title{font-size:11px;color:var(--ink-soft);margin:0 0 6px;}
+  .th-popover-actions{display:flex;gap:6px;margin-bottom:10px;}
+  .th-popover button{font:inherit;font-size:11px;cursor:pointer;border:1px solid var(--line);background:var(--panel);color:var(--ink);border-radius:6px;padding:6px 8px;}
+  .th-popover button:hover,.th-popover button.active{border-color:var(--primary);color:var(--primary);}
+  .th-popover .filter-operator{display:flex;gap:5px;margin-bottom:7px;}
+  .th-popover input{width:100%;font:inherit;font-size:12px;padding:7px;border:1px solid var(--line);border-radius:6px;background:var(--bg);color:var(--ink);}
+  .th-popover .filter-apply{width:100%;margin-top:8px;background:var(--primary);color:var(--primary-ink);border:0;font-weight:700;}
+  th[data-popup-root]{position:relative;}
   .tablewrap{overflow-x:auto; overflow-y:visible; border-radius:8px;}
   .footnote{color:var(--ink-soft); font-size:12px; margin-top:10px;}
   .empty{text-align:center; padding:50px 20px; color:var(--ink-soft);}
@@ -155,7 +175,7 @@
   .combo-item.clearopt{color:var(--notfound-ink); font-weight:700;}
   .combo-empty{padding:14px; font-size:12.5px; color:var(--ink-soft); text-align:center;}
 
-  .manual-table input{font-size:13px; padding:6px 8px; width:100%;}
+  .manual-table input,.manual-table select{font-size:13px; padding:6px 8px; width:100%;}
   .manual-table td{padding:5px 6px;}
 
   .formgrid{display:grid; grid-template-columns:1fr 1fr; gap:14px;}
@@ -223,7 +243,7 @@
           <div class="field"><label>عمود رقم الصنف</label><select id="colItemNum"></select></div>
           <div class="field"><label>عمود اسم الصنف</label><select id="colName"></select></div>
           <div class="field"><label>عمود الكمية المتاحة</label><select id="colQty"></select></div>
-          <div class="field"><label>عمود الوحدة (اختياري)</label><select id="colUnit"></select></div>
+          <div class="field"><label>عمود المستودع (اختياري)</label><select id="colWarehouse"></select></div>
         </div>
         <div class="btnrow"><button class="primary" id="invApplyBtn">اعتماد هذا الملف كمخزون</button><span id="invStatus" style="font-size:12.5px;color:var(--ink-soft);"></span></div>
       </div>
@@ -255,12 +275,6 @@
       <h2><span class="num">3</span> نتيجة المطابقة</h2>
       <div class="summary" id="summary"></div>
       <div class="toolbar">
-        <div class="filterchips">
-          <div class="fchip on" data-k="all">الكل</div>
-          <div class="fchip" data-k="found">متوفر</div>
-          <div class="fchip" data-k="partial">يحتاج تأكيد</div>
-          <div class="fchip" data-k="notfound">غير موجود</div>
-        </div>
         <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
           <input type="text" id="search" placeholder="فلترة النتائج...">
           <button class="secondary" id="addRowBtn">+ إضافة صنف</button>
@@ -271,14 +285,18 @@
         <table>
           <thead><tr>
             <th>#</th><th style="min-width:210px">الصنف المطلوب</th><th>الكمية المطلوبة</th><th>الحالة</th>
-            <th style="min-width:250px">الصنف بالمخزون</th><th>الكمية المتاحة</th><th>الوحدة</th><th>الثقة</th><th></th>
+            <th style="min-width:250px">الصنف بالمخزون</th><th>المستودع (الكمية)</th>
+            <th data-popup-root="qty"><div class="th-label">الكمية المتاحة<button class="th-filter-toggle" data-popup-toggle="qty" aria-expanded="false" title="فرز وتصفية">▾</button></div><div class="th-popover" data-popup="qty" hidden><div class="th-popover-title">فرز الكمية المتاحة</div><div class="th-popover-actions"><button data-sort="qty:asc">تصاعدي من الأصغر</button><button data-sort="qty:desc">تنازلي من الأكبر</button></div><div class="th-popover-title">تصفية حسب الكمية</div><div class="filter-operator"><button data-op="qty:gt">أكبر من</button><button data-op="qty:lt">أصغر من</button></div><input type="number" data-filter-value="qty" placeholder="أدخل الكمية" step="any"><button class="filter-apply" data-apply="qty">تطبيق</button><button data-clear="qty">مسح التصفية والفرز</button></div></th>
+            <th>الوحدة</th>
+            <th data-popup-root="confidence"><div class="th-label">الثقة<button class="th-filter-toggle" data-popup-toggle="confidence" aria-expanded="false" title="فرز وتصفية">▾</button></div><div class="th-popover" data-popup="confidence" hidden><div class="th-popover-title">فرز الثقة</div><div class="th-popover-actions"><button data-sort="confidence:asc">تصاعدي من الأقل</button><button data-sort="confidence:desc">تنازلي من الأعلى</button></div><div class="th-popover-title">تصفية حسب الثقة (%)</div><div class="filter-operator"><button data-op="confidence:gt">أكبر من</button><button data-op="confidence:lt">أصغر من</button></div><input type="number" data-filter-value="confidence" placeholder="أدخل النسبة" min="0" max="100" step="any"><button class="filter-apply" data-apply="confidence">تطبيق</button><button data-clear="confidence">مسح التصفية والفرز</button></div></th><th></th>
           </tr></thead>
           <tbody id="resultsBody"></tbody>
         </table>
       </div>
       <div class="footnote">
-        الحقلان فيهما بحث فوري بالكتالوج: نص (<code>فستق براف</code>)، وايلد كارد بنمط D365 (<code>*فستق*براف*</code>)، أو رقم صنف. الأسهم ↑↓ للتنقل وEnter للاختيار. أي اختيار يدوي يحوّل الحالة إلى "متوفر".
+        الحقلان فيهما بحث فوري بالكتالوج: نص (<code>فستق براف</code>)، وايلد كارد بنمط D365 (<code>*فستق*براف*</code>)، أو رقم صنف. الأسهم ↑↓ للتنقل وEnter للاختيار. الاختيار اليدوي يحدّث الحالة حسب الكمية المتاحة.
       </div>
+      <div class="footnote">الثقة هي درجة تشابه اسم الصنف المطلوب مع اسم الصنف في المخزون، وليست احتمالاً إحصائياً. تُحسب من 65% لتداخل الكلمات و35% لتشابه أزواج الحروف، مع إضافة تصل إلى 15 نقطة عند تطابق جزء متصل من الاسم (والحد الأقصى 100%). تطابق رقم الصنف أو الاختيار اليدوي يعرض 100%.</div>
     </div>
   </section>
 
@@ -346,9 +364,15 @@
     s=s.replace(/[^\u0621-\u064A0-9a-zA-Z*\s]/g,' ');
     return s.replace(/\s+/g,' ').trim().toLowerCase();
   }
+  const TOKEN_EQUIV=new Map();
+  function addTokenEquivalents(canonical,variants){variants.forEach(v=>TOKEN_EQUIV.set(normalizeAr(v),canonical));}
+  addTokenEquivalents('بودره',['بودر','بودرة','بودره','باودر','باودرة','باودره','مسحوق','مطحون','مطحونة','مطحونه']);
+  addTokenEquivalents('موزاريلا',['موزاريلا','موزريلا','موزيريلا','موتزاريلا','موتزريلا','mozzarella','mozerella','mozarella','mozzarela']);
+  addTokenEquivalents('parmesan',['بارميزان','بارمزان','برميزان','بارميسان','بارميجان','parmesan','parmigiano']);
+  const canonicalToken=t=>TOKEN_EQUIV.get(t)||t;
   const UNIT_WORDS=new Set(['كرتون','كرتونه','كرتونة','كيلو','كجم','كغ','جم','جرام','غرام','لتر','مل','حبه','حبة','حبات','شد','عبوة','عبوه','قطعة','قطعه','قطع','كيس','جالون','علبة','علبه','علب','صندوق','سطل','تنك','تنكه','تنكة','باكت','ربطة','ربطه','ربطتين','دستة','دزينة','فرخ','رول','ك','غ','طن','شدة','شده','حبتين','صفيحة','صفيحه','قالب','بكت','دبة','دبه','كرت','او','ملي']);
   const tokenize=n=>n.split(' ').filter(Boolean);
-  const coreTokens=t=>t.filter(x=>!UNIT_WORDS.has(x)&&!/^\d+$/.test(x));
+  const coreTokens=t=>t.map(canonicalToken).filter(x=>!UNIT_WORDS.has(x)&&!/^\d+$/.test(x));
   function bigrams(s){s=s.replace(/\s+/g,'');const g=new Set();for(let i=0;i<s.length-1;i++)g.add(s.substr(i,2));if(!g.size&&s.length===1)g.add(s);return g;}
   function diceSim(a,b){if(!a.size&&!b.size)return 0;let i=0;for(const x of a)if(b.has(x))i++;return 2*i/(a.size+b.size||1);}
   const escapeHtml=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -358,17 +382,17 @@
                       by the match page, so swapping stock can't break search)
      INV = stock   -> what the match page searches and reports quantities from
   */
-  function makeRecord(itemNumber,name,qty,unit,hasQty){
+  function makeRecord(itemNumber,name,qty,unit,hasQty,stocks){
     const normName=normalizeAr(name);
     const core=coreTokens(tokenize(normName));
     const coreStr=core.join('');
     const q=parseFloat(qty);
     return {itemNumber:String(itemNumber==null?'':itemNumber).trim(), name:String(name),
-            qty:isNaN(q)?0:q, unit:String(unit==null?'':unit).trim(),
+            qty:isNaN(q)?0:q, unit:String(unit==null?'':unit).trim(), stocks:Array.isArray(stocks)?stocks:[],
             normName, coreSet:new Set(core), coreStr, bigramSet:bigrams(coreStr||normName)};
   }
   function buildSet(records,label,hasQty){
-    const items=records.map(r=>makeRecord(r.itemNumber,r.name,r.qty,r.unit))
+    const items=records.map(r=>makeRecord(r.itemNumber,r.name,r.qty,r.unit,true,r.stocks))
                        .filter(r=>r.name&&r.name.trim());
     const index=new Map();
     items.forEach((inv,idx)=>inv.coreSet.forEach(t=>{
@@ -379,6 +403,21 @@
   }
   let CAT=buildSet([],'الكتالوج المخزّن',false);
   let INV=CAT;
+  let CAT_ITEM_BY_NUM=new Map();
+  let CAT_ITEM_BY_NAME=new Map();
+  function splitUnitChoices(unit){
+    const seen=new Set();
+    return String(unit||'').split(/\s*\/\s*/).map(s=>s.trim()).filter(s=>{
+      const key=s.toLowerCase(); if(!key||seen.has(key))return false; seen.add(key); return true;
+    });
+  }
+  function catalogItemFor(itemNumber,name){
+    return CAT_ITEM_BY_NUM.get(String(itemNumber==null?'':itemNumber).trim())||CAT_ITEM_BY_NAME.get(normalizeAr(name));
+  }
+  function catalogUnitChoices(itemNumber,name){
+    const item=catalogItemFor(itemNumber,name);
+    return item?splitUnitChoices(item.unit):[];
+  }
 
   /* ================= D365-style search ================= */
   function queryKind(raw){
@@ -390,13 +429,16 @@
   function matchName(normName,nq){
     if(!nq) return true;
     if(nq.includes('*')){
-      const parts=nq.split('*').map(p=>p.trim()).filter(Boolean);
+      const canonicalizePhrase=s=>s.split(' ').map(canonicalToken).join(' ');
+      const name=canonicalizePhrase(normName), query=nq.split('*').map(canonicalizePhrase).join('*');
+      const parts=query.split('*').map(p=>p.trim()).filter(Boolean);
       if(!parts.length) return true;
       let pos=0;
-      for(const p of parts){const i=normName.indexOf(p,pos); if(i===-1) return false; pos=i+p.length;}
+      for(const p of parts){const i=name.indexOf(p,pos); if(i===-1) return false; pos=i+p.length;}
       return true;
     }
-    return nq.split(' ').filter(Boolean).every(t=>normName.includes(t));
+    const itemTokens=new Set(normName.split(' ').filter(Boolean).map(canonicalToken));
+    return nq.split(' ').filter(Boolean).map(canonicalToken).every(t=>itemTokens.has(t));
   }
   function searchSet(set,rawQuery,limit){
     limit=limit||50;
@@ -464,6 +506,7 @@
     return scored;
   }
   const statusFromScore=s=> s>=0.55?'found': s>=0.28?'partial':'notfound';
+  const statusForItem=(idx,score)=>INV.hasQty&&score>=0.28&&Number(INV.items[idx].qty)<=0?'no_stock':statusFromScore(score);
   function extractQtyDisplay(orig,norm){
     const out=[];
     orig.forEach((raw,i)=>{const n=norm[i]; if(n!==undefined&&(UNIT_WORDS.has(n)||/^\d+$/.test(n))) out.push(raw);});
@@ -473,7 +516,7 @@
     if(queryKind(raw)==='number'){
       const nq=normalizeAr(raw);
       const exact=INV.items.findIndex(inv=>String(inv.itemNumber)===nq);
-      if(exact>=0) return {raw,qtyDisplay:'-',status:'found',candidates:[{idx:exact,score:1}],chosenIdx:exact};
+      if(exact>=0) return {raw,qtyDisplay:'-',status:statusForItem(exact,1),candidates:[{idx:exact,score:1}],chosenIdx:exact};
     }
     const norm=normalizeAr(raw), tn=tokenize(norm), to=raw.split(/\s+/).filter(Boolean);
     const core=coreTokens(tn), coreStr=core.join('');
@@ -481,12 +524,9 @@
     const scored=findCandidates(INV,core,coreStr,bigrams(coreStr));
     let candidates=scored.slice(0,8), status='notfound', chosenIdx=-1;
     if(scored.length){
-      const top=scored[0].score;
-      const close=scored.filter(s=>s.score>=Math.max(top-0.12,0)&&s.score>=0.2);
-      if(INV.hasQty) close.sort((a,b)=>(INV.items[b.idx].qty||0)-(INV.items[a.idx].qty||0));
-      const pick=close[0]||scored[0];
+      const pick=scored[0];
       let ci=scored.findIndex(s=>s.idx===pick.idx); if(ci<0) ci=0;
-      status=statusFromScore(scored[ci].score);
+      status=statusForItem(pick.idx,scored[ci].score);
       candidates=[scored[ci],...scored.filter((s,ix)=>ix!==ci)].slice(0,8);
       chosenIdx=candidates[0].idx;
     }
@@ -606,13 +646,13 @@
     num:['رقم الصنف','item number','item code','sku','رقم','code','item'],
     name:['product name','اسم الصنف','الصنف','search name','name','description','اسم','product'],
     qty:['available physical','physical available','الكمية المتاحة','available for reservation','total available','available','qty','quantity','stock','متاح','كمية'],
-    unit:['stock unit','الوحدة','unit']
+    warehouse:['warehouse','المستودع','مستودع']
   };
   function fillCols(headers,ids){
-    [['num',ids.num],['name',ids.name],['qty',ids.qty],['unit',ids.unit]].forEach(pair=>{
+    [['num',ids.num],['name',ids.name],['qty',ids.qty],['warehouse',ids.warehouse]].filter(pair=>pair[1]).forEach(pair=>{
       const k=pair[0], id=pair[1];
       const sel=document.getElementById(id); sel.innerHTML='';
-      if(k==='unit'){const o=document.createElement('option');o.value='-1';o.textContent='(بدون)';sel.appendChild(o);}
+      if(k==='warehouse'){const o=document.createElement('option');o.value='-1';o.textContent='(بدون)';sel.appendChild(o);}
       headers.forEach((h,i)=>{const o=document.createElement('option');o.value=i;o.textContent=h||('عمود '+(i+1));sel.appendChild(o);});
       const g=guessCol(headers,COL_KWS[k]); if(g>=0) sel.value=g;
     });
@@ -620,13 +660,29 @@
   function recordsFromRaw(raw,ids){
     const iN=parseInt(document.getElementById(ids.num).value),
           iM=parseInt(document.getElementById(ids.name).value),
-          iQ=parseInt(document.getElementById(ids.qty).value),
-          iUs=document.getElementById(ids.unit).value, iU=iUs==='-1'?-1:parseInt(iUs);
-    const recs=[];
+          iQ=parseInt(document.getElementById(ids.qty).value);
+    const recs=[], groups=new Map();
     raw.rows.forEach(row=>{
       const nm=row[iM];
       if(nm===undefined||nm===null||String(nm).trim()==='') return;
-      recs.push({itemNumber:iN>=0?row[iN]:'', name:nm, qty:iQ>=0?row[iQ]:0, unit:iU>=0?row[iU]:''});
+      const itemNumber=iN>=0?row[iN]:'', qty=Number(row[iQ])||0,
+            catalogItem=CAT_ITEM_BY_NUM.get(String(itemNumber||'').trim())||CAT_ITEM_BY_NAME.get(normalizeAr(nm)),
+            unit=catalogItem?catalogItem.unit:'',
+            warehouseIdx=ids.warehouse?parseInt(document.getElementById(ids.warehouse).value):-1,
+            warehouse=warehouseIdx>=0?row[warehouseIdx]:'';
+      const key=String(itemNumber||'').trim()+'|'+normalizeAr(nm);
+      if(!groups.has(key)) groups.set(key,{itemNumber,name:nm,qty:0,unit,stocks:[]});
+      const item=groups.get(key);
+      if(warehouseIdx<0) item.qty+=qty;
+      if(warehouse!==undefined&&warehouse!==null&&String(warehouse).trim()&&qty>0){
+        const wh=String(warehouse).trim(), existing=item.stocks.find(s=>s.warehouse===wh);
+        if(existing) existing.qty+=qty; else item.stocks.push({warehouse:wh,qty,unit:String(unit||'').trim()});
+      }
+    });
+    groups.forEach(item=>{
+      item.stocks.sort((a,b)=>b.qty-a.qty);
+      if(item.stocks.length){item.qty=item.stocks[0].qty;item.unit=item.stocks[0].unit||item.unit;}
+      recs.push(item);
     });
     return recs;
   }
@@ -640,7 +696,9 @@
 
   /* ================= MATCH ================= */
   let invRaw=null, wantedLines=[], results=[], activeFilter='all';
-  const IDS_MATCH={num:'colItemNum',name:'colName',qty:'colQty',unit:'colUnit'};
+  let tableSort={field:'',direction:''};
+  let tableFilter={qty:{op:'',value:''},confidence:{op:'',value:''}};
+  const IDS_MATCH={num:'colItemNum',name:'colName',qty:'colQty',warehouse:'colWarehouse'};
 
   function setInvSource(set,resettable){
     INV=set;
@@ -702,47 +760,95 @@
       : wantedLines.length>0;
     document.getElementById('runBtn').disabled=!(ready&&INV.items.length>0);
   }
-  const badgeLabel=s=> s==='found'?'متوفر': s==='partial'?'يحتاج تأكيد':'غير موجود';
+  const badgeLabel=s=> s==='found'?'متوفر': s==='partial'?'يحتاج تأكيد':s==='no_stock'?'لا يوجد مخزون':'غير موجود';
   function invLabel(i){
     const v=INV.items[i];
     return v.name+' · '+(v.itemNumber||'-')+(INV.hasQty?(' · '+v.qty+(v.unit?(' '+v.unit):'')):'');
   }
 
+  function unitSelectMarkup(itemNumber,selected,index,name){
+    const item=catalogItemFor(itemNumber,name), units=item?splitUnitChoices(item.unit):[], value=units.includes(selected)?selected:(units[0]||'');
+    const options=units.map(unit=>'<option value="'+escapeHtml(unit)+'"'+(unit===value?' selected':'')+'>'+escapeHtml(unit)+'</option>').join('');
+    const placeholder=units.length?'':'<option value="" selected>'+((item)?'لا توجد وحدة مسجلة':'اختر الصنف أولاً')+'</option>';
+    return '<select class="result-unit-select" data-unit="'+index+'"'+(units.length?'':' disabled')+'>'+placeholder+options+'</select>';
+  }
   function renderSummary(){
-    const c={found:0,partial:0,notfound:0}; results.forEach(r=>c[r.status]++);
+    const c={found:0,partial:0,no_stock:0,notfound:0}; results.forEach(r=>c[r.status]++);
     document.getElementById('summary').innerHTML=
-      '<div class="stat"><div class="n">'+results.length+'</div><div class="l">إجمالي المطلوب</div></div>'+
-      '<div class="stat found"><div class="n">'+c.found+'</div><div class="l">متوفرة</div></div>'+
-      '<div class="stat partial"><div class="n">'+c.partial+'</div><div class="l">تحتاج تأكيد</div></div>'+
-      '<div class="stat notfound"><div class="n">'+c.notfound+'</div><div class="l">غير موجودة</div></div>';
+      '<div class="stat'+(activeFilter==='all'?' active':'')+'" data-filter="all" role="button" tabindex="0"><div class="n">'+results.length+'</div><div class="l">إجمالي الطلب</div></div>'+
+      '<div class="stat found'+(activeFilter==='found'?' active':'')+'" data-filter="found" role="button" tabindex="0"><div class="n">'+c.found+'</div><div class="l">متوفر</div></div>'+
+      '<div class="stat partial'+(activeFilter==='partial'?' active':'')+'" data-filter="partial" role="button" tabindex="0"><div class="n">'+c.partial+'</div><div class="l">يحتاج تأكيد</div></div>'+
+      '<div class="stat notfound'+(activeFilter==='no_stock'?' active':'')+'" data-filter="no_stock" role="button" tabindex="0"><div class="n">'+c.no_stock+'</div><div class="l">لا يوجد مخزون</div></div>'+
+      '<div class="stat notfound'+(activeFilter==='notfound'?' active':'')+'" data-filter="notfound" role="button" tabindex="0"><div class="n">'+c.notfound+'</div><div class="l">غير موجود</div></div>';
   }
   function renderResults(){
     const tb=document.getElementById('resultsBody');
     const qn=normalizeAr(document.getElementById('search').value.trim());
-    tb.innerHTML=''; let shown=0;
-    results.forEach((r,i)=>{
-      if(activeFilter!=='all'&&r.status!==activeFilter) return;
-      if(qn&&!normalizeAr(r.raw).includes(qn)) return;
-      shown++;
+    tb.innerHTML='';
+    let visibleRows=results.map((r,i)=>({r,i})).filter(({r})=>
+      (activeFilter==='all'||r.status===activeFilter)&&(!qn||normalizeAr(r.raw).includes(qn))
+    );
+    ['qty','confidence'].forEach(field=>{
+      const {op,value}=tableFilter[field], threshold=parseFloat(value);
+      const valueOf=r=>{
+        if(field==='confidence'){
+          const c=r.candidates.find(c=>c.idx===r.chosenIdx); return r.chosenIdx>=0?(c?c.score:1)*100:null;
+        }
+        const inv=r.chosenIdx>=0?INV.items[r.chosenIdx]:null;
+        if(!inv||!INV.hasQty)return null;
+        const stock=inv.stocks.find(s=>s.warehouse===r.selectedWarehouse)||inv.stocks[0];
+        return Number(stock?stock.qty:inv.qty)||0;
+      };
+      if((op==='gt'||op==='lt')&&!isNaN(threshold)) visibleRows=visibleRows.filter(({r})=>{
+        const v=valueOf(r); return v!==null&&(op==='gt'?v>threshold:v<threshold);
+      });
+    });
+    if(tableSort.field){
+      const valueOf=r=>{
+        if(tableSort.field==='confidence'){
+          const c=r.candidates.find(c=>c.idx===r.chosenIdx); return r.chosenIdx>=0?(c?c.score:1)*100:null;
+        }
+        const inv=r.chosenIdx>=0?INV.items[r.chosenIdx]:null;
+        if(!inv||!INV.hasQty)return null;
+        const stock=inv.stocks.find(s=>s.warehouse===r.selectedWarehouse)||inv.stocks[0];
+        return Number(stock?stock.qty:inv.qty)||0;
+      };
+      visibleRows.sort((a,b)=>{
+        const av=valueOf(a.r),bv=valueOf(b.r);
+        if(av===null&&bv===null)return 0;if(av===null)return 1;if(bv===null)return -1;
+        return (tableSort.direction==='asc'?1:-1)*(av-bv);
+      });
+    }
+    visibleRows.forEach(({r,i},displayIndex)=>{
       const inv=r.chosenIdx>=0?INV.items[r.chosenIdx]:null;
       const cc=r.candidates.find(c=>c.idx===r.chosenIdx);
+      const stocks=inv?inv.stocks:[], selectedStock=inv?(stocks.find(s=>s.warehouse===r.selectedWarehouse)||stocks[0]):null;
+      const warehouseCell=stocks.length?'<select class="warehouse-select" data-wh="'+i+'">'+stocks.map(s=>'<option value="'+escapeHtml(s.warehouse)+'"'+((selectedStock&&selectedStock.warehouse===s.warehouse)?' selected':'')+'>'+escapeHtml(s.warehouse)+' ('+escapeHtml(s.qty)+')</option>').join('')+'</select>':(inv?'—':'-');
       const tr=document.createElement('tr');
       tr.innerHTML=
-        '<td class="mono" style="color:var(--ink-soft)">'+(i+1)+'</td>'+
+        '<td class="mono" style="color:var(--ink-soft)">'+(displayIndex+1)+'</td>'+
         '<td class="req-name"><input type="text" class="reqinput" data-i="'+i+'" value="'+escapeHtml(r.raw)+'" placeholder="اكتب اسم أو رقم الصنف" autocomplete="off"></td>'+
         '<td class="req-qty">'+escapeHtml(r.qtyDisplay)+'</td>'+
         '<td><span class="status-pill '+r.status+'">'+badgeLabel(r.status)+'</span></td>'+
         '<td><input type="text" class="combo-input matchinput" data-i="'+i+'" value="'+(inv?escapeHtml(invLabel(r.chosenIdx)):'')+'" placeholder="— غير موجود — اكتب للبحث" autocomplete="off"></td>'+
-        '<td class="qtycell">'+(inv?(INV.hasQty?inv.qty:'—'):'-')+'</td>'+
-        '<td>'+(inv?escapeHtml(inv.unit||'-'):'-')+'</td>'+
+        '<td>'+warehouseCell+'</td>'+
+        '<td class="qtycell">'+(inv?(INV.hasQty?(selectedStock?selectedStock.qty:inv.qty):'—'):'-')+'</td>'+
+        '<td>'+unitSelectMarkup(inv?inv.itemNumber:'',inv?(Object.prototype.hasOwnProperty.call(r,'selectedUnit')?r.selectedUnit:undefined):'',i,inv?inv.name:'')+'</td>'+
         '<td class="confcell">'+(r.chosenIdx>=0?Math.round((cc?cc.score:1)*100)+'%':'-')+'</td>'+
         '<td><button class="iconbtn" data-del="'+i+'" title="حذف الصف">🗑</button></td>';
       tb.appendChild(tr);
     });
-    if(!shown) tb.innerHTML='<tr><td colspan="9"><div class="empty">لا نتائج للفلتر الحالي</div></td></tr>';
+    if(!visibleRows.length) tb.innerHTML='<tr><td colspan="10"><div class="empty">لا نتائج للفلتر الحالي</div></td></tr>';
 
     tb.querySelectorAll('[data-del]').forEach(b=>b.addEventListener('click',()=>{
       results.splice(parseInt(b.dataset.del),1); renderSummary(); renderResults();
+    }));
+
+    tb.querySelectorAll('.warehouse-select').forEach(sel=>sel.addEventListener('change',()=>{
+      results[parseInt(sel.dataset.wh)].selectedWarehouse=sel.value; renderResults();
+    }));
+    tb.querySelectorAll('.result-unit-select').forEach(sel=>sel.addEventListener('change',()=>{
+      results[parseInt(sel.dataset.unit)].selectedUnit=sel.value; renderResults();
     }));
 
     tb.querySelectorAll('.reqinput').forEach(inp=>{
@@ -750,7 +856,7 @@
       attachCombo(inp,()=>INV,(q,set)=>searchSet(set,q,40).map(idx=>({idx})),idx=>{
         if(idx<0) return;
         const inv=INV.items[idx];
-        results[i]={raw:inv.name,qtyDisplay:results[i].qtyDisplay,status:'found',candidates:[{idx:idx,score:1}],chosenIdx:idx};
+        results[i]={raw:inv.name,qtyDisplay:results[i].qtyDisplay,status:statusForItem(idx,1),candidates:[{idx:idx,score:1}],chosenIdx:idx};
         renderSummary(); renderResults();
       },'اختر من المخزون لتعبئة الصف');
       inp.addEventListener('change',()=>{
@@ -774,8 +880,13 @@
         return [{clear:true}].concat(items);
       },idx=>{
         results[i].chosenIdx=idx;
-        results[i].status=idx>=0?'found':'notfound';
-        if(idx>=0&&!results[i].candidates.some(c=>c.idx===idx)) results[i].candidates.unshift({idx:idx,score:1});
+        results[i].status=idx>=0?statusForItem(idx,1):'notfound';
+        if(idx>=0) results[i].selectedUnit=catalogUnitChoices(INV.items[idx].itemNumber,INV.items[idx].name)[0]||'';
+        else delete results[i].selectedUnit;
+        if(idx>=0){
+          const chosen=results[i].candidates.find(c=>c.idx===idx);
+          if(chosen) chosen.score=1; else results[i].candidates.unshift({idx:idx,score:1});
+        }
         renderSummary(); renderResults();
       },'كل الأصناف المطابقة (يدعم *نص*نص*)');
     });
@@ -804,45 +915,104 @@
     },20);
   });
   document.getElementById('search').addEventListener('input',renderResults);
-  document.querySelectorAll('.fchip').forEach(c=>c.addEventListener('click',()=>{
-    document.querySelectorAll('.fchip').forEach(x=>x.classList.remove('on'));
-    c.classList.add('on'); activeFilter=c.dataset.k; renderResults();
+  const closeTablePopups=()=>{
+    document.querySelectorAll('[data-popup]').forEach(p=>p.hidden=true);
+    document.querySelectorAll('[data-popup-toggle]').forEach(b=>b.setAttribute('aria-expanded','false'));
+  };
+  document.querySelectorAll('[data-popup-toggle]').forEach(toggle=>toggle.addEventListener('click',e=>{
+    e.stopPropagation();
+    const field=toggle.dataset.popupToggle, popup=document.querySelector('[data-popup="'+field+'"]'), opening=popup.hidden;
+    closeTablePopups();
+    if(opening){
+      popup.hidden=false;toggle.setAttribute('aria-expanded','true');
+      const rect=toggle.getBoundingClientRect(), width=popup.offsetWidth, height=popup.offsetHeight;
+      popup.style.top=Math.max(8,Math.min(rect.bottom+4,window.innerHeight-height-8))+'px';
+      popup.style.left=Math.max(8,Math.min(rect.right-width,window.innerWidth-width-8))+'px';
+    }
   }));
+  document.querySelectorAll('[data-popup]').forEach(popup=>popup.addEventListener('click',e=>e.stopPropagation()));
+  document.querySelectorAll('[data-sort]').forEach(button=>button.addEventListener('click',()=>{
+    const [field,direction]=button.dataset.sort.split(':'); tableSort={field,direction};
+    document.querySelectorAll('[data-popup-toggle]').forEach(b=>b.classList.toggle('has-filter',b.dataset.popupToggle===tableSort.field||!!tableFilter[b.dataset.popupToggle].op));
+    renderResults(); closeTablePopups();
+  }));
+  document.querySelectorAll('[data-op]').forEach(button=>button.addEventListener('click',()=>{
+    const [field,op]=button.dataset.op.split(':');
+    document.querySelectorAll('[data-op^="'+field+':"]').forEach(b=>b.classList.toggle('active',b===button));
+    document.querySelector('[data-filter-value="'+field+'"]').dataset.pendingOp=op;
+  }));
+  document.querySelectorAll('[data-apply]').forEach(button=>button.addEventListener('click',()=>{
+    const field=button.dataset.apply, input=document.querySelector('[data-filter-value="'+field+'"]'), value=input.value.trim(), op=input.dataset.pendingOp;
+    if(!op||value===''||!Number.isFinite(Number(value))) return;
+    tableFilter[field]={op,value:Number(value)};
+    document.querySelector('[data-popup-toggle="'+field+'"]').classList.add('has-filter');
+    renderResults(); closeTablePopups();
+  }));
+  document.querySelectorAll('[data-clear]').forEach(button=>button.addEventListener('click',()=>{
+    const field=button.dataset.clear, input=document.querySelector('[data-filter-value="'+field+'"]');
+    tableFilter[field]={op:'',value:''}; input.value=''; delete input.dataset.pendingOp;
+    document.querySelectorAll('[data-op^="'+field+':"]').forEach(b=>b.classList.remove('active'));
+    if(tableSort.field===field)tableSort={field:'',direction:''};
+    document.querySelector('[data-popup-toggle="'+field+'"]').classList.remove('has-filter');
+    if(tableSort.field) document.querySelector('[data-popup-toggle="'+tableSort.field+'"]').classList.add('has-filter');
+    renderResults(); closeTablePopups();
+  }));
+  document.addEventListener('click',closeTablePopups);
+  const summaryEl=document.getElementById('summary');
+  const activateSummaryFilter=el=>{
+    const card=el.closest('[data-filter]'); if(!card)return;
+    activeFilter=card.dataset.filter; renderSummary(); renderResults();
+  };
+  summaryEl.addEventListener('click',e=>activateSummaryFilter(e.target));
+  summaryEl.addEventListener('keydown',e=>{
+    if((e.key==='Enter'||e.key===' ')&&e.target.matches('[data-filter]')){e.preventDefault();activateSummaryFilter(e.target);}
+  });
   document.getElementById('addRowBtn').addEventListener('click',()=>{
     results.push({raw:'',qtyDisplay:'-',status:'notfound',candidates:[],chosenIdx:-1});
     activeFilter='all';
-    document.querySelectorAll('.fchip').forEach(x=>x.classList.toggle('on',x.dataset.k==='all'));
     renderSummary(); renderResults();
     const ins=document.querySelectorAll('#resultsBody .reqinput');
     if(ins.length) ins[ins.length-1].focus();
   });
   document.getElementById('exportBtn').addEventListener('click',async()=>{
-    const aoa=[['#','الصنف المطلوب','الكمية المطلوبة','الحالة','رقم الصنف','الصنف بالمخزون','الكمية المتاحة','الوحدة']];
+    const aoa=[['#','الصنف المطلوب','الكمية المطلوبة','الحالة','رقم الصنف','الصنف بالمخزون','المستودع','الكمية المتاحة','الوحدة','الثقة']];
     results.forEach((r,i)=>{
       const inv=r.chosenIdx>=0?INV.items[r.chosenIdx]:null;
+      const stock=inv?(inv.stocks.find(s=>s.warehouse===r.selectedWarehouse)||inv.stocks[0]):null;
+      const cc=r.candidates.find(c=>c.idx===r.chosenIdx);
+      const catalogUnits=inv?catalogUnitChoices(inv.itemNumber,inv.name):[];
+      const unit=inv?(catalogUnits.includes(r.selectedUnit)?r.selectedUnit:catalogUnits[0]||'-'):'-';
       aoa.push([i+1,r.raw,r.qtyDisplay,badgeLabel(r.status),inv?inv.itemNumber:'-',inv?inv.name:'-',
-                inv?(INV.hasQty?inv.qty:'غير متوفرة بالكتالوج'):'-',inv?(inv.unit||'-'):'-']);
+                stock?stock.warehouse:'-',inv?(INV.hasQty?(stock?stock.qty:inv.qty):'غير متوفرة بالكتالوج'):'-',unit,
+                r.chosenIdx>=0?Math.round((cc?cc.score:1)*100)+'%':'-']);
     });
-    await exportAOA('نتيجة_المطابقة.xlsx','نتيجة المطابقة',aoa,[{wch:5},{wch:32},{wch:16},{wch:15},{wch:12},{wch:42},{wch:18},{wch:10}]);
+    await exportAOA('نتيجة_المطابقة.xlsx','نتيجة المطابقة',aoa,[{wch:5},{wch:32},{wch:16},{wch:15},{wch:12},{wch:42},{wch:22},{wch:18},{wch:12},{wch:10}]);
   });
 
   /* ================= MANUAL ================= */
-  let manualRows=[{itemNumber:'',name:'',qty:'',unit:''}];
+  let manualRows=[{itemNumber:'',name:'',qty:'',unit:'',catalogItemNumber:''}];
+  function clearManualItemSelection(i){
+    manualRows[i].catalogItemNumber=''; manualRows[i].unit='';
+    const sel=document.querySelector('#manualBody select[data-f="unit"][data-i="'+i+'"]');
+    if(sel){sel.innerHTML='<option value="" selected>اختر الصنف أولاً</option>';sel.disabled=true;}
+  }
   function renderManual(){
     const tb=document.getElementById('manualBody');
     if(!tb) return;
     tb.innerHTML='';
     manualRows.forEach((row,i)=>{
+      const units=catalogUnitChoices(row.catalogItemNumber), selectedUnit=units.includes(row.unit)?row.unit:(units[0]||'');
+      const unitOptions=units.map(unit=>'<option value="'+escapeHtml(unit)+'"'+(unit===selectedUnit?' selected':'')+'>'+escapeHtml(unit)+'</option>').join('');
       const tr=document.createElement('tr');
       tr.innerHTML=
         '<td><input type="text" class="mnum" data-i="'+i+'" value="'+escapeHtml(row.itemNumber)+'" placeholder="رقم" autocomplete="off"></td>'+
         '<td><input type="text" class="mname" data-i="'+i+'" value="'+escapeHtml(row.name)+'" placeholder="اسم الصنف" autocomplete="off"></td>'+
         '<td><input type="text" data-f="qty" data-i="'+i+'" value="'+escapeHtml(row.qty)+'" placeholder="0"></td>'+
-        '<td><input type="text" data-f="unit" data-i="'+i+'" value="'+escapeHtml(row.unit)+'" placeholder="وحدة"></td>'+
+        '<td><select data-f="unit" data-i="'+i+'"'+(units.length?'':' disabled')+'><option value=""'+(!units.length?' selected':'')+'>'+((row.catalogItemNumber&&CAT_ITEM_BY_NUM.has(row.catalogItemNumber))?'لا توجد وحدة مسجلة':'اختر الصنف أولاً')+'</option>'+unitOptions+'</select></td>'+
         '<td><button class="iconbtn" data-mdel="'+i+'" title="حذف">🗑</button></td>';
       tb.appendChild(tr);
     });
-    tb.querySelectorAll('input[data-f]').forEach(inp=>inp.addEventListener('input',()=>{
+    tb.querySelectorAll('[data-f]').forEach(inp=>inp.addEventListener(inp.tagName==='SELECT'?'change':'input',()=>{
       manualRows[parseInt(inp.dataset.i)][inp.dataset.f]=inp.value;
     }));
     // ArrowDown: إنشاء/الانتقال للصف التالي فقط عندما لا تكون قائمة الاقتراحات مفتوحة
@@ -869,12 +1039,7 @@ tb.querySelectorAll('input').forEach(inp=>{
 
     // آخر صف → أنشئ صف جديد
     if(i === manualRows.length - 1){
-      manualRows.push({
-        itemNumber:'',
-        name:'',
-        qty:'',
-        unit:''
-      });
+      manualRows.push({itemNumber:'',name:'',qty:'',unit:'',catalogItemNumber:''});
 
       renderManual();
 
@@ -895,13 +1060,13 @@ tb.querySelectorAll('input').forEach(inp=>{
 });
     tb.querySelectorAll('[data-mdel]').forEach(b=>b.addEventListener('click',()=>{
       manualRows.splice(parseInt(b.dataset.mdel),1);
-      if(!manualRows.length) manualRows.push({itemNumber:'',name:'',qty:'',unit:''});
+      if(!manualRows.length) manualRows.push({itemNumber:'',name:'',qty:'',unit:'',catalogItemNumber:''});
       renderManual();
     }));
     function fillRow(i,idx){
       const inv=CAT.items[idx];
       manualRows[i]={itemNumber:String(inv.itemNumber||''),name:inv.name,
-                     qty:manualRows[i].qty, unit:manualRows[i].unit||inv.unit||''};
+                     qty:manualRows[i].qty, unit:catalogUnitChoices(inv.itemNumber,inv.name)[0]||'',catalogItemNumber:String(inv.itemNumber||'')};
       renderManual();
       const qi=document.querySelector('#manualBody input[data-f="qty"][data-i="'+i+'"]');
       if(qi) qi.focus();
@@ -909,17 +1074,17 @@ tb.querySelectorAll('input').forEach(inp=>{
     // Always reads CAT, so changing the stock source can never disable it.
     tb.querySelectorAll('.mnum').forEach(inp=>{
       const i=parseInt(inp.dataset.i);
-      inp.addEventListener('input',()=>{manualRows[i].itemNumber=inp.value;});
+      inp.addEventListener('input',()=>{manualRows[i].itemNumber=inp.value;clearManualItemSelection(i);});
       attachCombo(inp,()=>CAT,(q,set)=>searchSet(set,q,40).map(idx=>({idx})),idx=>{if(idx>=0)fillRow(i,idx);},'اقتراحات من الكتالوج المخزّن');
     });
     tb.querySelectorAll('.mname').forEach(inp=>{
       const i=parseInt(inp.dataset.i);
-      inp.addEventListener('input',()=>{manualRows[i].name=inp.value;});
+      inp.addEventListener('input',()=>{manualRows[i].name=inp.value;clearManualItemSelection(i);});
       attachCombo(inp,()=>CAT,(q,set)=>searchSet(set,q,40).map(idx=>({idx})),idx=>{if(idx>=0)fillRow(i,idx);},'اقتراحات من الكتالوج المخزّن');
     });
   }
   document.getElementById('manualAddRowBtn').addEventListener('click',()=>{
-    manualRows.push({itemNumber:'',name:'',qty:'',unit:''}); renderManual();
+    manualRows.push({itemNumber:'',name:'',qty:'',unit:'',catalogItemNumber:''}); renderManual();
     const ins=document.querySelectorAll('#manualBody .mnum');
     if(ins.length) ins[ins.length-1].focus();
   });
@@ -972,7 +1137,10 @@ tb.querySelectorAll('input').forEach(inp=>{
       document.getElementById('catBadge').textContent='تعذّر تحميل الكتالوج المخزّن — ارفع ملف مخزون يدوياً';
       return;
     }
-    CAT=buildSet(raw.map(r=>({itemNumber:r[0],name:r[1],qty:0,unit:''})),'الكتالوج المخزّن',false);
+    CAT=buildSet(raw.map(r=>({itemNumber:r[0],name:r[1],qty:0,unit:r[2]||''})),'الكتالوج المخزّن',false);
+    CAT_ITEM_BY_NUM=new Map(CAT.items.map(item=>[item.itemNumber,item]));
+    CAT_ITEM_BY_NAME=new Map();
+    CAT.items.forEach(item=>{const key=normalizeAr(item.name);if(key&&!CAT_ITEM_BY_NAME.has(key))CAT_ITEM_BY_NAME.set(key,item);});
     INV=CAT;
     document.getElementById('catBadge').textContent='✓ '+CAT.items.length.toLocaleString('en-US')+' صنف مخزّن وجاهز للبحث فوراً';
     document.getElementById('catSrcTag').textContent='الكتالوج المخزّن ('+CAT.items.length.toLocaleString('en-US')+' صنف)';
