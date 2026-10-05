@@ -7,8 +7,10 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;900&family=IBM+Plex+Mono:wght@500&display=swap" rel="stylesheet">
-<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-<script src="catalog.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"
+        onerror="this.onerror=null;var s=document.createElement('script');s.src='https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js';document.head.appendChild(s);"></script>
+<script src="catalog.js"
+        onerror="window.__CATALOG_LOAD_FAILED__=true;"></script>
 <style>
   :root{
     --bg:#F1F3EF; --panel:#FFFFFF; --ink:#16241F; --ink-soft:#4B5D55; --line:#D8DED7;
@@ -57,6 +59,9 @@
   .hero h1{font-size:27px; margin:0 0 8px; font-weight:900;}
   .hero p{color:var(--ink-soft); font-size:14.5px; max-width:680px; margin:0 0 10px;}
   .catbadge{display:inline-block; background:var(--found-bg); color:var(--found-ink); padding:6px 14px; border-radius:20px; font-size:12.5px; font-weight:700; margin-bottom:24px;}
+  .diagbox{background:var(--notfound-bg); color:var(--notfound-ink); border:1px solid var(--danger); border-radius:10px; padding:16px 18px; margin-bottom:20px; font-size:13.5px; line-height:1.8;}
+  .diagbox b{display:block; margin-bottom:4px;}
+  .diagbox code{background:rgba(0,0,0,.08); padding:1px 5px; border-radius:4px;}
   .cards{display:grid; grid-template-columns:repeat(3,1fr); gap:16px;}
   @media (max-width:820px){.cards{grid-template-columns:1fr;}}
   .card{background:var(--panel); border:1px solid var(--line); border-radius:12px; padding:22px; box-shadow:var(--shadow); cursor:pointer; transition:.15s;}
@@ -84,8 +89,7 @@
   .srctag{background:var(--chip-bg);padding:4px 11px;border-radius:20px;font-weight:700;color:var(--ink);}
   .linkbtn{background:none;border:none;cursor:pointer;color:var(--primary);font-size:12.5px;text-decoration:underline;font-family:inherit;padding:2px;}
 
-  .cols{display:grid; grid-template-columns:repeat(4,1fr); gap:12px; margin-top:14px;}
-  @media (max-width:820px){.cols{grid-template-columns:repeat(2,1fr);}}
+  .cols{display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:12px; margin-top:14px;}
   .field label{display:block; font-size:12px; color:var(--ink-soft); margin-bottom:5px; font-weight:700;}
   select, textarea, input[type=text], input[type=email]{width:100%; border:1px solid var(--line); border-radius:7px; background:var(--panel); color:var(--ink); padding:8px 10px; font-family:inherit; font-size:13.5px;}
   select:focus, textarea:focus, input:focus{outline:2px solid var(--primary); outline-offset:1px;}
@@ -103,29 +107,30 @@
   .iconbtn:hover{background:var(--notfound-bg);}
 
   .summary{display:flex; gap:10px; flex-wrap:wrap; margin:6px 0 18px;}
-  .stat{flex:1; min-width:120px; background:var(--panel); border:1px solid var(--line); border-radius:9px; padding:14px 16px; box-shadow:var(--shadow);}
+  .stat{flex:1; min-width:120px; background:var(--panel); border:2px solid var(--line); border-radius:9px; padding:14px 16px; box-shadow:var(--shadow);}
+  .stat.clickable{cursor:pointer; transition:.12s;}
+  .stat.clickable:hover{transform:translateY(-1px);}
   .stat .n{font-size:24px; font-weight:900; font-family:'IBM Plex Mono',monospace;}
   .stat .l{font-size:12px; color:var(--ink-soft); margin-top:2px;}
   .stat.found .n{color:var(--found-ink);}
   .stat.partial .n{color:var(--partial-ink);}
   .stat.notfound .n{color:var(--notfound-ink);}
-  .stat[data-filter]{cursor:pointer;transition:border-color .15s,transform .15s;}
-  .stat[data-filter]:hover{transform:translateY(-1px);border-color:var(--primary);}
-  .stat.active{border-color:var(--primary);box-shadow:0 0 0 2px color-mix(in srgb,var(--primary) 18%,transparent);}
+  .stat.nostock .n{color:var(--danger);}
+  .stat.active{border-color:var(--primary);}
+  .stat.found.active{border-color:var(--found-ink);}
+  .stat.partial.active{border-color:var(--partial-ink);}
+  .stat.notfound.active{border-color:var(--notfound-ink);}
+  .stat.nostock.active{border-color:var(--danger);}
 
   .toolbar{display:flex; justify-content:space-between; align-items:center; gap:12px; margin-bottom:10px; flex-wrap:wrap;}
-  .filterchips{display:flex; gap:6px; flex-wrap:wrap;}
-  .fchip{padding:5px 12px; border-radius:20px; font-size:12.5px; font-weight:700; cursor:pointer; border:1px solid var(--line); background:var(--panel); color:var(--ink-soft);}
-  .fchip.on{border-color:transparent;}
-  .fchip[data-k="all"].on{background:var(--primary); color:var(--primary-ink);}
-  .fchip[data-k="found"].on{background:var(--found-bg); color:var(--found-ink);}
-  .fchip[data-k="partial"].on{background:var(--partial-bg); color:var(--partial-ink);}
-  .fchip[data-k="notfound"].on{background:var(--notfound-bg); color:var(--notfound-ink);}
-  .fchip[data-k="no_stock"].on{background:var(--notfound-bg); color:var(--notfound-ink);}
   input#search{max-width:220px;}
 
   table{width:100%; border-collapse:collapse; font-size:13px;}
   thead th{text-align:right; font-size:11.5px; color:var(--ink-soft); font-weight:700; border-bottom:2px solid var(--line); padding:8px 8px; white-space:nowrap;}
+  thead th.sortable{cursor:pointer; user-select:none; position:relative; padding-right:16px;}
+  thead th.sortable:hover{color:var(--ink);}
+  thead th.sortable.filtered{color:var(--accent);}
+  thead th.sortable.filtered::after{content:'●'; font-size:6px; position:relative; top:-5px; margin-right:3px; color:var(--accent);}
   tbody tr{border-bottom:1px solid var(--line);}
   tbody tr:hover{background:var(--chip-bg);}
   tbody td{padding:8px; vertical-align:top;}
@@ -133,28 +138,29 @@
   .req-name input:hover{border-color:var(--line);}
   .req-name input:focus{border-color:var(--primary); background:var(--panel);}
   .req-qty{color:var(--ink-soft); font-size:12px;}
+
+  .colmenu-pop{position:fixed; z-index:210; background:var(--panel); border:1px solid var(--line); border-radius:9px; box-shadow:0 10px 30px rgba(0,0,0,.22); padding:10px; min-width:220px;}
+  .colmenu-pop[hidden]{display:none;}
+  .cm-item{padding:7px 9px; cursor:pointer; font-size:12.5px; border-radius:6px; font-weight:700;}
+  .cm-item:hover{background:var(--chip-bg);}
+  .cm-item.active{background:var(--primary); color:var(--primary-ink);}
+  .cm-sep{height:1px; background:var(--line); margin:7px 0;}
+  .cm-sub{font-size:11.5px; color:var(--ink-soft); margin:8px 0 4px; font-weight:700;}
+  .cm-input{width:100%; border:1px solid var(--line); border-radius:6px; padding:6px 8px; font-size:12.5px; background:var(--bg); color:var(--ink); font-family:inherit;}
+  .cm-row{display:flex; gap:6px;}
+  .cm-actions{display:flex; gap:8px; margin-top:10px;}
+  .cm-actions button{flex:1; padding:7px; border-radius:6px; font-size:12px; font-weight:700; cursor:pointer; font-family:inherit; border:1px solid var(--line); background:var(--panel); color:var(--ink);}
+  .cm-actions button.cm-apply{background:var(--primary); color:var(--primary-ink); border-color:transparent;}
+
+  select.statussel{border:none; border-radius:20px; padding:4px 22px 4px 8px; font-size:11.5px; font-weight:700; cursor:pointer; font-family:inherit; -webkit-appearance:none; appearance:none; background-position:left 7px center; background-repeat:no-repeat; background-size:9px; background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 6'><path d='M1 1l4 4 4-4' stroke='%23666' stroke-width='1.6' fill='none' stroke-linecap='round' stroke-linejoin='round'/></svg>");}
+  select.statussel.found{background-color:var(--found-bg); color:var(--found-ink);}
+  select.statussel.partial{background-color:var(--partial-bg); color:var(--partial-ink);}
+  select.statussel.notfound{background-color:var(--notfound-bg); color:var(--notfound-ink);}
   .status-pill{display:inline-block; padding:3px 10px; border-radius:20px; font-size:11.5px; font-weight:700; white-space:nowrap;}
   .status-pill.found{background:var(--found-bg); color:var(--found-ink);}
   .status-pill.partial{background:var(--partial-bg); color:var(--partial-ink);}
   .status-pill.notfound{background:var(--notfound-bg); color:var(--notfound-ink);}
-  .status-pill.no_stock{background:var(--notfound-bg); color:var(--notfound-ink);}
   .qtycell{font-family:'IBM Plex Mono',monospace; font-weight:700;}
-  .confcell{color:var(--ink-soft); font-size:11.5px;}
-  .result-unit-select{min-width:105px;max-width:150px;font:inherit;font-size:12px;padding:5px;border:1px solid var(--line);border-radius:6px;background:var(--panel);color:var(--ink);}
-  .th-label{display:flex;align-items:center;justify-content:space-between;gap:6px;}
-  .th-filter-toggle{border:0;background:none;color:var(--ink-soft);font-size:14px;cursor:pointer;border-radius:5px;padding:2px 5px;}
-  .th-filter-toggle:hover,.th-filter-toggle[aria-expanded="true"]{background:var(--chip-bg);color:var(--primary);}
-  .th-filter-toggle.has-filter{color:var(--primary);}
-  .th-popover{position:fixed;z-index:300;width:220px;max-height:calc(100vh - 16px);overflow:auto;padding:11px;background:var(--panel);border:1px solid var(--line);border-radius:9px;box-shadow:0 8px 24px rgba(0,0,0,.16);white-space:normal;text-align:right;color:var(--ink);}
-  .th-popover[hidden]{display:none;}
-  .th-popover-title{font-size:11px;color:var(--ink-soft);margin:0 0 6px;}
-  .th-popover-actions{display:flex;gap:6px;margin-bottom:10px;}
-  .th-popover button{font:inherit;font-size:11px;cursor:pointer;border:1px solid var(--line);background:var(--panel);color:var(--ink);border-radius:6px;padding:6px 8px;}
-  .th-popover button:hover,.th-popover button.active{border-color:var(--primary);color:var(--primary);}
-  .th-popover .filter-operator{display:flex;gap:5px;margin-bottom:7px;}
-  .th-popover input{width:100%;font:inherit;font-size:12px;padding:7px;border:1px solid var(--line);border-radius:6px;background:var(--bg);color:var(--ink);}
-  .th-popover .filter-apply{width:100%;margin-top:8px;background:var(--primary);color:var(--primary-ink);border:0;font-weight:700;}
-  th[data-popup-root]{position:relative;}
   .tablewrap{overflow-x:auto; overflow-y:visible; border-radius:8px;}
   .footnote{color:var(--ink-soft); font-size:12px; margin-top:10px;}
   .empty{text-align:center; padding:50px 20px; color:var(--ink-soft);}
@@ -165,17 +171,18 @@
   .combo-pop{position:fixed; z-index:200; background:var(--panel); border:1px solid var(--line); border-radius:9px; box-shadow:0 10px 30px rgba(0,0,0,.22); max-height:330px; overflow-y:auto; min-width:320px;}
   .combo-pop[hidden]{display:none;}
   .combo-head{padding:7px 11px; font-size:11.5px; color:var(--ink-soft); border-bottom:1px solid var(--line); position:sticky; top:0; background:var(--panel);}
-  .combo-item{padding:8px 11px; cursor:pointer; font-size:12.5px; border-bottom:1px solid var(--line); display:flex; gap:10px; align-items:baseline;}
+  .combo-item{padding:8px 11px; cursor:pointer; font-size:12.5px; border-bottom:1px solid var(--line); display:block;}
   .combo-item:last-child{border-bottom:none;}
   .combo-item.hi{background:var(--chip-bg);}
-  .combo-item .num{font-family:'IBM Plex Mono',monospace; color:var(--ink-soft); font-size:11.5px; flex:none; min-width:52px;}
-  .combo-item .nm{font-weight:700; flex:1;}
-  .combo-item .qt{font-family:'IBM Plex Mono',monospace; font-size:11.5px; color:var(--found-ink); flex:none;}
+  .combo-item .nm{font-weight:700; display:block;}
+  .combo-item .meta{display:flex; gap:10px; margin-top:3px;}
+  .combo-item .num{font-family:'IBM Plex Mono',monospace; color:var(--ink-soft); font-size:11px;}
+  .combo-item .qt{font-family:'IBM Plex Mono',monospace; font-size:11px; color:var(--found-ink); font-weight:700;}
   .combo-item.zero .qt{color:var(--notfound-ink);}
   .combo-item.clearopt{color:var(--notfound-ink); font-weight:700;}
   .combo-empty{padding:14px; font-size:12.5px; color:var(--ink-soft); text-align:center;}
 
-  .manual-table input,.manual-table select{font-size:13px; padding:6px 8px; width:100%;}
+  .manual-table input{font-size:13px; padding:6px 8px; width:100%;}
   .manual-table td{padding:5px 6px;}
 
   .formgrid{display:grid; grid-template-columns:1fr 1fr; gap:14px;}
@@ -208,6 +215,7 @@
       <h1>أداة مطابقة الأصناف والمخزون</h1>
       <p>قائمة الأصناف مخزّنة داخل الموقع — البحث يشتغل فوراً بدون رفع أي ملف. رفع ملف المخزون اختياري، فقط لو بدك تعرض الكميات المتاحة.</p>
       <div class="catbadge" id="catBadge">جاري تحميل كتالوج الأصناف...</div>
+      <div id="diagBox"></div>
     </div>
     <div class="cards">
       <div class="card" data-goto="match">
@@ -243,9 +251,10 @@
           <div class="field"><label>عمود رقم الصنف</label><select id="colItemNum"></select></div>
           <div class="field"><label>عمود اسم الصنف</label><select id="colName"></select></div>
           <div class="field"><label>عمود الكمية المتاحة</label><select id="colQty"></select></div>
+          <div class="field"><label>عمود الوحدة (اختياري)</label><select id="colUnit"></select></div>
           <div class="field"><label>عمود المستودع (اختياري)</label><select id="colWarehouse"></select></div>
         </div>
-        <div class="btnrow"><button class="primary" id="invApplyBtn">اعتماد هذا الملف كمخزون</button><span id="invStatus" style="font-size:12.5px;color:var(--ink-soft);"></span></div>
+        <div id="invStatus" class="footnote" style="margin-top:8px;"></div>
       </div>
     </div>
 
@@ -276,7 +285,7 @@
       <div class="summary" id="summary"></div>
       <div class="toolbar">
         <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
-          <input type="text" id="search" placeholder="فلترة النتائج...">
+          <input type="text" id="search" placeholder="فلترة سريعة بالاسم...">
           <button class="secondary" id="addRowBtn">+ إضافة صنف</button>
           <button class="secondary" id="exportBtn">⬇ تحميل اكسل</button>
         </div>
@@ -284,19 +293,26 @@
       <div class="tablewrap">
         <table>
           <thead><tr>
-            <th>#</th><th style="min-width:210px">الصنف المطلوب</th><th>الكمية المطلوبة</th><th>الحالة</th>
-            <th style="min-width:250px">الصنف بالمخزون</th><th>المستودع (الكمية)</th>
-            <th data-popup-root="qty"><div class="th-label">الكمية المتاحة<button class="th-filter-toggle" data-popup-toggle="qty" aria-expanded="false" title="فرز وتصفية">▾</button></div><div class="th-popover" data-popup="qty" hidden><div class="th-popover-title">فرز الكمية المتاحة</div><div class="th-popover-actions"><button data-sort="qty:asc">تصاعدي من الأصغر</button><button data-sort="qty:desc">تنازلي من الأكبر</button></div><div class="th-popover-title">تصفية حسب الكمية</div><div class="filter-operator"><button data-op="qty:gt">أكبر من</button><button data-op="qty:lt">أصغر من</button></div><input type="number" data-filter-value="qty" placeholder="أدخل الكمية" step="any"><button class="filter-apply" data-apply="qty">تطبيق</button><button data-clear="qty">مسح التصفية والفرز</button></div></th>
-            <th>الوحدة</th>
-            <th data-popup-root="confidence"><div class="th-label">الثقة<button class="th-filter-toggle" data-popup-toggle="confidence" aria-expanded="false" title="فرز وتصفية">▾</button></div><div class="th-popover" data-popup="confidence" hidden><div class="th-popover-title">فرز الثقة</div><div class="th-popover-actions"><button data-sort="confidence:asc">تصاعدي من الأقل</button><button data-sort="confidence:desc">تنازلي من الأعلى</button></div><div class="th-popover-title">تصفية حسب الثقة (%)</div><div class="filter-operator"><button data-op="confidence:gt">أكبر من</button><button data-op="confidence:lt">أصغر من</button></div><input type="number" data-filter-value="confidence" placeholder="أدخل النسبة" min="0" max="100" step="any"><button class="filter-apply" data-apply="confidence">تطبيق</button><button data-clear="confidence">مسح التصفية والفرز</button></div></th><th></th>
+            <th>#</th>
+            <th class="sortable" data-col="raw" data-type="text" style="min-width:210px">الصنف المطلوب</th>
+            <th class="sortable" data-col="qtyDisplay" data-type="text">الكمية المطلوبة</th>
+            <th>الحالة</th>
+            <th class="sortable" data-col="itemNumber" data-type="number">رقم الصنف</th>
+            <th class="sortable" data-col="invName" data-type="text" style="min-width:230px">الصنف بالمخزون</th>
+            <th class="sortable" data-col="warehouse" data-type="text">المستودع</th>
+            <th class="sortable" data-col="unit" data-type="text">الوحدة</th>
+            <th class="sortable" data-col="qty" data-type="number">الكمية المتاحة</th>
+            <th class="sortable" data-col="confidence" data-type="number">الدقة</th>
+            <th></th>
           </tr></thead>
           <tbody id="resultsBody"></tbody>
         </table>
       </div>
       <div class="footnote">
-        الحقلان فيهما بحث فوري بالكتالوج: نص (<code>فستق براف</code>)، وايلد كارد بنمط D365 (<code>*فستق*براف*</code>)، أو رقم صنف. الأسهم ↑↓ للتنقل وEnter للاختيار. الاختيار اليدوي يحدّث الحالة حسب الكمية المتاحة.
+        الحقلان "الصنف المطلوب" و"الصنف بالمخزون" فيهما بحث فوري: نص (<code>فستق براف</code>)، وايلد كارد بنمط D365 (<code>*فستق*براف*</code>)، أو رقم صنف. أي اختيار يدوي يحوّل الحالة إلى "متوفر"، وتقدر كمان تغيّر الحالة يدوياً من القائمة المنسدلة بعمود "الحالة".<br>
+        اضغط عنوان أي عمود للفرز (تصاعدي/تنازلي) أو الفلترة — أرقام: أكبر من/أصغر من/بين، نصوص: يحتوي على. النقطة الملوّنة بجانب العنوان تعني فيه فلتر فعّال على هذا العمود.<br>
+        عمود "الدقة" نسبة تطابق الاسم المطلوب مع الصنف المختار (كلما قلّت، زاد احتمال وجود خطأ بالمطابقة يستاهل مراجعة). بدون رفع ملف مخزون، الكمية تظهر <code>—</code> لكن الوحدة تضل تظهر من الكتالوج.
       </div>
-      <div class="footnote">الثقة هي درجة تشابه اسم الصنف المطلوب مع اسم الصنف في المخزون، وليست احتمالاً إحصائياً. تُحسب من 65% لتداخل الكلمات و35% لتشابه أزواج الحروف، مع إضافة تصل إلى 15 نقطة عند تطابق جزء متصل من الاسم (والحد الأقصى 100%). تطابق رقم الصنف أو الاختيار اليدوي يعرض 100%.</div>
     </div>
   </section>
 
@@ -309,17 +325,15 @@
       </div>
       <div class="tablewrap">
         <table class="manual-table">
-          <thead><tr><th style="width:17%">رقم الصنف</th><th>اسم الصنف</th><th style="width:13%">الكمية</th><th style="width:13%">الوحدة</th><th style="width:5%"></th></tr></thead>
+          <thead><tr><th style="width:20%">رقم الصنف</th><th>اسم الصنف</th><th style="width:5%"></th></tr></thead>
           <tbody id="manualBody"></tbody>
         </table>
       </div>
       <div class="btnrow">
         <button class="secondary" id="manualAddRowBtn">+ إضافة صف</button>
         <button class="secondary" id="manualExportBtn">⬇ تحميل اكسل</button>
-        <button class="primary" id="manualUseBtn" style="display: none;">استخدام كمخزون بصفحة المطابقة</button>
-        <span id="manualStatus" style="font-size:12.5px;color:var(--ink-soft);"></span>
       </div>
-      <div class="footnote">استخدام الصفوف كمخزون بيغيّر مصدر الكميات بصفحة المطابقة فقط — بحث الكتالوج بيضل شغّال كالعادة.</div>
+      <div class="footnote">اختيار صنف من الاقتراحات بيعبّي الصف وبينقلك لصف جديد مباشرة.</div>
     </div>
   </section>
 
@@ -364,15 +378,18 @@
     s=s.replace(/[^\u0621-\u064A0-9a-zA-Z*\s]/g,' ');
     return s.replace(/\s+/g,' ').trim().toLowerCase();
   }
-  const TOKEN_EQUIV=new Map();
-  function addTokenEquivalents(canonical,variants){variants.forEach(v=>TOKEN_EQUIV.set(normalizeAr(v),canonical));}
-  addTokenEquivalents('بودره',['بودر','بودرة','بودره','باودر','باودرة','باودره','مسحوق','مطحون','مطحونة','مطحونه']);
-  addTokenEquivalents('موزاريلا',['موزاريلا','موزريلا','موزيريلا','موتزاريلا','موتزريلا','mozzarella','mozerella','mozarella','mozzarela']);
-  addTokenEquivalents('parmesan',['بارميزان','بارمزان','برميزان','بارميسان','بارميجان','parmesan','parmigiano']);
-  const canonicalToken=t=>TOKEN_EQUIV.get(t)||t;
   const UNIT_WORDS=new Set(['كرتون','كرتونه','كرتونة','كيلو','كجم','كغ','جم','جرام','غرام','لتر','مل','حبه','حبة','حبات','شد','عبوة','عبوه','قطعة','قطعه','قطع','كيس','جالون','علبة','علبه','علب','صندوق','سطل','تنك','تنكه','تنكة','باكت','ربطة','ربطه','ربطتين','دستة','دزينة','فرخ','رول','ك','غ','طن','شدة','شده','حبتين','صفيحة','صفيحه','قالب','بكت','دبة','دبه','كرت','او','ملي']);
   const tokenize=n=>n.split(' ').filter(Boolean);
-  const coreTokens=t=>t.map(canonicalToken).filter(x=>!UNIT_WORDS.has(x)&&!/^\d+$/.test(x));
+  const coreTokens=t=>t.filter(x=>!UNIT_WORDS.has(x)&&!/^\d+$/.test(x));
+  // Arabic spelling of foreign/brand words is inconsistent about internal
+  // long vowels (ا و ي), e.g. شيدر/شدر, بارميزان/برميزان/برمزان all reduce
+  // to the same "skeleton" once those internal vowels are stripped — so we
+  // match on skeletons too, as a second signal alongside the exact spelling.
+  function skeletonAr(word){
+    if(word.length<=2) return word; // too short to safely strip from
+    return word[0]+word.slice(1).replace(/[اوي]/g,'');
+  }
+  const skeletonTokens=tokens=>tokens.map(skeletonAr);
   function bigrams(s){s=s.replace(/\s+/g,'');const g=new Set();for(let i=0;i<s.length-1;i++)g.add(s.substr(i,2));if(!g.size&&s.length===1)g.add(s);return g;}
   function diceSim(a,b){if(!a.size&&!b.size)return 0;let i=0;for(const x of a)if(b.has(x))i++;return 2*i/(a.size+b.size||1);}
   const escapeHtml=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -382,42 +399,53 @@
                       by the match page, so swapping stock can't break search)
      INV = stock   -> what the match page searches and reports quantities from
   */
-  function makeRecord(itemNumber,name,qty,unit,hasQty,stocks){
+  // `warehouses`, when given, is the raw list of {wh,qty} pairs collected for
+  // this item across every warehouse row in the source file. We keep only
+  // the ones with stock (qty>0), sorted highest-first, and the item's own
+  // .qty becomes the top (highest-stock) warehouse's quantity — this is what
+  // makes "highest quantity wins" ties, suggestion previews, and the default
+  // warehouse selection all agree with each other for free.
+  // `units`: deduped list of unit strings seen for this item (e.g. from every
+  // warehouse row, or embedded in the catalog). Joined with " / " for display
+  // so a genuinely multi-unit item still shows cleanly; almost always length 1.
+  function makeRecord(itemNumber,name,qty,units,warehouses){
     const normName=normalizeAr(name);
     const core=coreTokens(tokenize(normName));
     const coreStr=core.join('');
-    const q=parseFloat(qty);
+    const skelCore=skeletonTokens(core);
+    const skelCoreStr=skelCore.join('');
+    let whList=null, bestQty=qty;
+    if(warehouses&&warehouses.length){
+      whList=warehouses.filter(w=>w.qty>0).sort((a,b)=>b.qty-a.qty);
+      bestQty=whList.length?whList[0].qty:0;
+    }
+    const q=parseFloat(bestQty);
+    const skelNormName=skeletonTokens(tokenize(normName)).join(' ');
+    const unitList=(units||[]).filter(Boolean);
     return {itemNumber:String(itemNumber==null?'':itemNumber).trim(), name:String(name),
-            qty:isNaN(q)?0:q, unit:String(unit==null?'':unit).trim(), stocks:Array.isArray(stocks)?stocks:[],
-            normName, coreSet:new Set(core), coreStr, bigramSet:bigrams(coreStr||normName)};
+            qty:isNaN(q)?0:q, unit:unitList.join(' / '), warehouses:whList,
+            normName, coreSet:new Set(core), coreStr, bigramSet:bigrams(coreStr||normName),
+            skelSet:new Set(skelCore), skelCoreStr, skelBigramSet:bigrams(skelCoreStr||normName), skelNormName};
   }
   function buildSet(records,label,hasQty){
-    const items=records.map(r=>makeRecord(r.itemNumber,r.name,r.qty,r.unit,true,r.stocks))
+    const items=records.map(r=>makeRecord(r.itemNumber,r.name,r.qty,r.units,r.warehouses))
                        .filter(r=>r.name&&r.name.trim());
-    const index=new Map();
-    items.forEach((inv,idx)=>inv.coreSet.forEach(t=>{
-      if(!index.has(t)) index.set(t,new Set());
-      index.get(t).add(idx);
-    }));
-    return {items,index,label,hasQty:!!hasQty};
+    const index=new Map(), skelIndex=new Map();
+    items.forEach((inv,idx)=>{
+      inv.coreSet.forEach(t=>{
+        if(!index.has(t)) index.set(t,new Set());
+        index.get(t).add(idx);
+      });
+      inv.skelSet.forEach(t=>{
+        if(!skelIndex.has(t)) skelIndex.set(t,new Set());
+        skelIndex.get(t).add(idx);
+      });
+    });
+    const hasWarehouse=items.some(it=>it.warehouses&&it.warehouses.length>0);
+    return {items,index,skelIndex,label,hasQty:!!hasQty,hasWarehouse};
   }
   let CAT=buildSet([],'الكتالوج المخزّن',false);
   let INV=CAT;
-  let CAT_ITEM_BY_NUM=new Map();
-  let CAT_ITEM_BY_NAME=new Map();
-  function splitUnitChoices(unit){
-    const seen=new Set();
-    return String(unit||'').split(/\s*\/\s*/).map(s=>s.trim()).filter(s=>{
-      const key=s.toLowerCase(); if(!key||seen.has(key))return false; seen.add(key); return true;
-    });
-  }
-  function catalogItemFor(itemNumber,name){
-    return CAT_ITEM_BY_NUM.get(String(itemNumber==null?'':itemNumber).trim())||CAT_ITEM_BY_NAME.get(normalizeAr(name));
-  }
-  function catalogUnitChoices(itemNumber,name){
-    const item=catalogItemFor(itemNumber,name);
-    return item?splitUnitChoices(item.unit):[];
-  }
 
   /* ================= D365-style search ================= */
   function queryKind(raw){
@@ -429,16 +457,13 @@
   function matchName(normName,nq){
     if(!nq) return true;
     if(nq.includes('*')){
-      const canonicalizePhrase=s=>s.split(' ').map(canonicalToken).join(' ');
-      const name=canonicalizePhrase(normName), query=nq.split('*').map(canonicalizePhrase).join('*');
-      const parts=query.split('*').map(p=>p.trim()).filter(Boolean);
+      const parts=nq.split('*').map(p=>p.trim()).filter(Boolean);
       if(!parts.length) return true;
       let pos=0;
-      for(const p of parts){const i=name.indexOf(p,pos); if(i===-1) return false; pos=i+p.length;}
+      for(const p of parts){const i=normName.indexOf(p,pos); if(i===-1) return false; pos=i+p.length;}
       return true;
     }
-    const itemTokens=new Set(normName.split(' ').filter(Boolean).map(canonicalToken));
-    return nq.split(' ').filter(Boolean).map(canonicalToken).every(t=>itemTokens.has(t));
+    return nq.split(' ').filter(Boolean).every(t=>normName.includes(t));
   }
   function searchSet(set,rawQuery,limit){
     limit=limit||50;
@@ -466,8 +491,10 @@
       return pre.concat(mid,inName).slice(0,limit);
     }
     const nq=normalizeAr(rawQuery), out=[];
+    const useSkel=!nq.includes('*'); // keep wildcard queries literal/predictable
+    const skelQ=useSkel?tokenize(nq).map(skeletonAr).join(' '):'';
     for(let i=0;i<items.length;i++){
-      if(matchName(items[i].normName,nq)) out.push(i);
+      if(matchName(items[i].normName,nq)||(useSkel&&matchName(items[i].skelNormName,skelQ))) out.push(i);
       if(out.length>=600) break;
     }
     if(set.hasQty) out.sort((a,b)=>items[b].qty-items[a].qty);
@@ -487,36 +514,60 @@
     });
     return html;
   }
+  // Candidates are retrieved via BOTH the exact-spelling index and the
+  // skeleton index, so an item is never missed just because the request used
+  // a different (but skeleton-equivalent) spelling — e.g. "شدر" retrieves
+  // "جبنة شيدر" even though they share zero exact tokens or substrings.
+  // Each candidate is then scored twice (exact-form and skeleton-form) and
+  // the better of the two wins, with a small discount on skeleton-only
+  // matches so a genuinely exact spelling still edges out a fuzzy one.
   function findCandidates(set,reqCore,reqCoreStr,reqBigrams){
     const items=set.items;
+    const reqSkelCore=skeletonTokens(reqCore);
+    const reqSkelCoreStr=reqSkelCore.join('');
+    const reqSkelBigrams=bigrams(reqSkelCoreStr);
+
     let cand=new Set();
     reqCore.forEach(t=>{const s=set.index.get(t); if(s) s.forEach(i=>cand.add(i));});
+    reqSkelCore.forEach(t=>{const s=set.skelIndex.get(t); if(s) s.forEach(i=>cand.add(i));});
     if(!cand.size&&reqCoreStr){
-      items.forEach((inv,i)=>{if(inv.coreStr&&(inv.coreStr.includes(reqCoreStr)||reqCoreStr.includes(inv.coreStr))) cand.add(i);});
+      items.forEach((inv,i)=>{
+        if(inv.coreStr&&(inv.coreStr.includes(reqCoreStr)||reqCoreStr.includes(inv.coreStr))) cand.add(i);
+        else if(inv.skelCoreStr&&reqSkelCoreStr&&(inv.skelCoreStr.includes(reqSkelCoreStr)||reqSkelCoreStr.includes(inv.skelCoreStr))) cand.add(i);
+      });
     }
+
     const scored=[];
     cand.forEach(idx=>{
       const inv=items[idx];
       const ov=reqCore.length?reqCore.filter(t=>inv.coreSet.has(t)).length/reqCore.length:0;
-      let score=0.65*ov+0.35*diceSim(reqBigrams,inv.bigramSet);
+      const exactScore=0.65*ov+0.35*diceSim(reqBigrams,inv.bigramSet);
+
+      const skelOv=reqSkelCore.length?reqSkelCore.filter(t=>inv.skelSet.has(t)).length/reqSkelCore.length:0;
+      const skelScore=(0.65*skelOv+0.35*diceSim(reqSkelBigrams,inv.skelBigramSet))*0.92;
+
+      let score=Math.max(exactScore,skelScore);
       if(reqCoreStr&&inv.coreStr.includes(reqCoreStr)) score=Math.min(1,score+0.15);
+      else if(reqSkelCoreStr&&inv.skelCoreStr.includes(reqSkelCoreStr)) score=Math.min(1,score+0.12);
       scored.push({idx,score});
     });
     scored.sort((a,b)=>b.score-a.score);
     return scored;
   }
   const statusFromScore=s=> s>=0.55?'found': s>=0.28?'partial':'notfound';
-  const statusForItem=(idx,score)=>INV.hasQty&&score>=0.28&&Number(INV.items[idx].qty)<=0?'no_stock':statusFromScore(score);
   function extractQtyDisplay(orig,norm){
     const out=[];
     orig.forEach((raw,i)=>{const n=norm[i]; if(n!==undefined&&(UNIT_WORDS.has(n)||/^\d+$/.test(n))) out.push(raw);});
     return out.length?out.join(' '):'-';
   }
+  // whIdx indexes into the chosen item's .warehouses array (already sorted
+  // highest-stock-first by makeRecord), so 0 always means "auto-pick the
+  // warehouse with the most stock" — exactly what's wanted by default.
   function computeRowMatch(raw){
     if(queryKind(raw)==='number'){
       const nq=normalizeAr(raw);
       const exact=INV.items.findIndex(inv=>String(inv.itemNumber)===nq);
-      if(exact>=0) return {raw,qtyDisplay:'-',status:statusForItem(exact,1),candidates:[{idx:exact,score:1}],chosenIdx:exact};
+      if(exact>=0) return {raw,qtyDisplay:'-',status:'found',candidates:[{idx:exact,score:1}],chosenIdx:exact,whIdx:0};
     }
     const norm=normalizeAr(raw), tn=tokenize(norm), to=raw.split(/\s+/).filter(Boolean);
     const core=coreTokens(tn), coreStr=core.join('');
@@ -524,16 +575,20 @@
     const scored=findCandidates(INV,core,coreStr,bigrams(coreStr));
     let candidates=scored.slice(0,8), status='notfound', chosenIdx=-1;
     if(scored.length){
-      const pick=scored[0];
+      const top=scored[0].score;
+      const close=scored.filter(s=>s.score>=Math.max(top-0.12,0)&&s.score>=0.2);
+      if(INV.hasQty) close.sort((a,b)=>(INV.items[b.idx].qty||0)-(INV.items[a.idx].qty||0));
+      const pick=close[0]||scored[0];
       let ci=scored.findIndex(s=>s.idx===pick.idx); if(ci<0) ci=0;
-      status=statusForItem(pick.idx,scored[ci].score);
+      status=statusFromScore(scored[ci].score);
       candidates=[scored[ci],...scored.filter((s,ix)=>ix!==ci)].slice(0,8);
       chosenIdx=candidates[0].idx;
     }
-    return {raw,qtyDisplay,status,candidates,chosenIdx};
+    return {raw,qtyDisplay,status,candidates,chosenIdx,whIdx:0};
   }
 
   async function exportAOA(filename,sheetName,aoa,cols){
+    if(!ensureXLSX()) return;
     const wb=XLSX.utils.book_new(), ws=XLSX.utils.aoa_to_sheet(aoa);
     if(cols) ws['!cols']=cols;
     XLSX.utils.book_append_sheet(wb,ws,sheetName);
@@ -571,9 +626,9 @@
       const inv=set.items[it.idx];
       const qtyTxt=set.hasQty?(inv.qty+(inv.unit?(' '+escapeHtml(inv.unit)):'')):'';
       html+='<div class="combo-item '+(set.hasQty&&inv.qty<=0?'zero':'')+' '+(i===popHi?'hi':'')+'" data-i="'+i+'">'
-          +'<span class="num">'+escapeHtml(inv.itemNumber||'-')+'</span>'
           +'<span class="nm">'+highlight(inv.name,query)+'</span>'
-          +'<span class="qt">'+qtyTxt+'</span></div>';
+          +'<span class="meta"><span class="num">'+escapeHtml(inv.itemNumber||'-')+'</span>'
+          +(qtyTxt?'<span class="qt">'+qtyTxt+'</span>':'')+'</span></div>';
     });
     pop.innerHTML=html;
     pop.querySelectorAll('.combo-item').forEach(el=>{
@@ -628,6 +683,11 @@
   gotoPage('home');
 
   /* ================= file helpers ================= */
+  function ensureXLSX(){
+    if(typeof XLSX!=='undefined') return true;
+    alert('تعذّر تحميل مكتبة قراءة ملفات الإكسل (XLSX) — على الأغلب سبب شبكي (جدار حماية أو حاجب إعلانات يمنع الوصول لـ cdnjs.cloudflare.com أو cdn.jsdelivr.net). تأكد من اتصال الإنترنت أو جرّب متصفح/شبكة ثانية.');
+    return false;
+  }
   function readWB(file){
     return new Promise((res,rej)=>{
       const r=new FileReader();
@@ -636,55 +696,72 @@
     });
   }
   const toAOA=wb=>XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]],{header:1,raw:true,defval:''});
+  // Priority-ordered: the first keyword (in array order) that matches ANY
+  // header wins, regardless of whether a later keyword would match a longer
+  // substring elsewhere. This guarantees "Available physical" is picked over
+  // "Total available" etc. whenever both exist, because it is listed first.
   function guessCol(headers,kws){
-    let best=-1,bs=0;
-    headers.forEach((h,i)=>{const hn=String(h||'').toLowerCase();
-      kws.forEach(k=>{if(hn.includes(k)&&k.length>bs){bs=k.length;best=i;}});});
-    return best;
+    for(const k of kws){
+      const i=headers.findIndex(h=>String(h||'').toLowerCase().includes(k));
+      if(i>=0) return i;
+    }
+    return -1;
   }
   const COL_KWS={
     num:['رقم الصنف','item number','item code','sku','رقم','code','item'],
     name:['product name','اسم الصنف','الصنف','search name','name','description','اسم','product'],
     qty:['available physical','physical available','الكمية المتاحة','available for reservation','total available','available','qty','quantity','stock','متاح','كمية'],
-    warehouse:['warehouse','المستودع','مستودع']
+    unit:['stock unit','الوحدة','unit'],
+    warehouse:['warehouse','مستودع','فرع','branch','store','wh']
   };
   function fillCols(headers,ids){
-    [['num',ids.num],['name',ids.name],['qty',ids.qty],['warehouse',ids.warehouse]].filter(pair=>pair[1]).forEach(pair=>{
+    [['num',ids.num],['name',ids.name],['qty',ids.qty],['unit',ids.unit],['warehouse',ids.warehouse]].forEach(pair=>{
       const k=pair[0], id=pair[1];
+      if(!id) return; // some forms (manual/reference) don't have a warehouse select at all
       const sel=document.getElementById(id); sel.innerHTML='';
-      if(k==='warehouse'){const o=document.createElement('option');o.value='-1';o.textContent='(بدون)';sel.appendChild(o);}
+      if(k==='unit'||k==='warehouse'){const o=document.createElement('option');o.value='-1';o.textContent='(بدون)';sel.appendChild(o);}
       headers.forEach((h,i)=>{const o=document.createElement('option');o.value=i;o.textContent=h||('عمود '+(i+1));sel.appendChild(o);});
       const g=guessCol(headers,COL_KWS[k]); if(g>=0) sel.value=g;
     });
   }
+  // With no warehouse column: one record per row, as before.
+  // With a warehouse column: rows are grouped by item (item number, falling
+  // back to the normalized name), collecting every {warehouse, qty} pair so
+  // the results table can offer a per-item warehouse picker.
   function recordsFromRaw(raw,ids){
     const iN=parseInt(document.getElementById(ids.num).value),
           iM=parseInt(document.getElementById(ids.name).value),
-          iQ=parseInt(document.getElementById(ids.qty).value);
-    const recs=[], groups=new Map();
+          iQ=parseInt(document.getElementById(ids.qty).value),
+          iUs=document.getElementById(ids.unit).value, iU=iUs==='-1'?-1:parseInt(iUs),
+          iWs=ids.warehouse?document.getElementById(ids.warehouse).value:'-1',
+          iW=iWs==='-1'?-1:parseInt(iWs);
+
+    if(iW<0){
+      const recs=[];
+      raw.rows.forEach(row=>{
+        const nm=row[iM];
+        if(nm===undefined||nm===null||String(nm).trim()==='') return;
+        const u=iU>=0?String(row[iU]==null?'':row[iU]).trim():'';
+        recs.push({itemNumber:iN>=0?row[iN]:'', name:nm, qty:iQ>=0?row[iQ]:0, units:u?[u]:[]});
+      });
+      return recs;
+    }
+
+    const map=new Map();
     raw.rows.forEach(row=>{
       const nm=row[iM];
       if(nm===undefined||nm===null||String(nm).trim()==='') return;
-      const itemNumber=iN>=0?row[iN]:'', qty=Number(row[iQ])||0,
-            catalogItem=CAT_ITEM_BY_NUM.get(String(itemNumber||'').trim())||CAT_ITEM_BY_NAME.get(normalizeAr(nm)),
-            unit=catalogItem?catalogItem.unit:'',
-            warehouseIdx=ids.warehouse?parseInt(document.getElementById(ids.warehouse).value):-1,
-            warehouse=warehouseIdx>=0?row[warehouseIdx]:'';
-      const key=String(itemNumber||'').trim()+'|'+normalizeAr(nm);
-      if(!groups.has(key)) groups.set(key,{itemNumber,name:nm,qty:0,unit,stocks:[]});
-      const item=groups.get(key);
-      if(warehouseIdx<0) item.qty+=qty;
-      if(warehouse!==undefined&&warehouse!==null&&String(warehouse).trim()&&qty>0){
-        const wh=String(warehouse).trim(), existing=item.stocks.find(s=>s.warehouse===wh);
-        if(existing) existing.qty+=qty; else item.stocks.push({warehouse:wh,qty,unit:String(unit||'').trim()});
-      }
+      const itemNumber=iN>=0?String(row[iN]).trim():'';
+      const key=itemNumber||normalizeAr(String(nm));
+      const wh=String(row[iW]==null?'':row[iW]).trim();
+      const qRaw=iQ>=0?row[iQ]:0, q=parseFloat(qRaw), qty=isNaN(q)?0:q;
+      const unit=iU>=0?String(row[iU]==null?'':row[iU]).trim():'';
+      if(!map.has(key)) map.set(key,{itemNumber,name:nm,units:[],warehouses:[]});
+      const rec=map.get(key);
+      if(wh) rec.warehouses.push({wh,qty});
+      if(unit&&!rec.units.includes(unit)) rec.units.push(unit);
     });
-    groups.forEach(item=>{
-      item.stocks.sort((a,b)=>b.qty-a.qty);
-      if(item.stocks.length){item.qty=item.stocks[0].qty;item.unit=item.stocks[0].unit||item.unit;}
-      recs.push(item);
-    });
-    return recs;
+    return Array.from(map.values());
   }
   function setupDrop(dropEl,inputEl,onFile){
     dropEl.addEventListener('click',()=>inputEl.click());
@@ -695,10 +772,11 @@
   }
 
   /* ================= MATCH ================= */
-  let invRaw=null, wantedLines=[], results=[], activeFilter='all';
-  let tableSort={field:'',direction:''};
-  let tableFilter={qty:{op:'',value:''},confidence:{op:'',value:''}};
-  const IDS_MATCH={num:'colItemNum',name:'colName',qty:'colQty',warehouse:'colWarehouse'};
+  let invRaw=null, wantedLines=[], results=[];
+  let statFilter='all'; // all|found|partial|notfound|nostock
+  let columnFilters={}; // colKey -> {type:'contains'|'gt'|'lt'|'between', ...}
+  let sortSpec=null; // {key,dir}
+  const IDS_MATCH={num:'colItemNum',name:'colName',qty:'colQty',unit:'colUnit',warehouse:'colWarehouse'};
 
   function setInvSource(set,resettable){
     INV=set;
@@ -713,10 +791,17 @@
     document.getElementById('invCols').style.display='none';
     document.getElementById('fileInv').value=''; invRaw=null;
     document.getElementById('invStatus').textContent='';
-    document.getElementById('manualStatus').textContent='';
   });
 
+  function applyInvNow(){
+    if(!invRaw) return;
+    const set=buildSet(recordsFromRaw(invRaw,IDS_MATCH),'ملف: '+invRaw.name,true);
+    setInvSource(set,true);
+    const whNote=set.hasWarehouse?' — عبر عدة مستودعات':'';
+    document.getElementById('invStatus').textContent='✓ جاهز — '+set.items.length+' صنف بكمياته'+whNote+' (يتحدّث تلقائياً لو غيّرت الأعمدة تحت)';
+  }
   async function handleInvFile(file){
+    if(!ensureXLSX()) return;
     try{
       const aoa=toAOA(await readWB(file));
       if(!aoa.length){alert('الملف فارغ');return;}
@@ -726,16 +811,17 @@
       ok.innerHTML='<div class="fileok"><span>✓ '+escapeHtml(file.name)+' — '+invRaw.rows.length+' صف</span></div>';
       document.getElementById('invCols').style.display='block';
       fillCols(invRaw.headers,IDS_MATCH);
-    }catch(e){console.error(e);alert('تعذّرت قراءة الملف.');}
+      applyInvNow(); // apply immediately with the auto-detected columns — no extra click needed
+    }catch(e){console.error(e);alert('تعذّرت قراءة الملف. تأكد أنه ملف إكسل أو CSV صحيح.');}
   }
-  document.getElementById('invApplyBtn').addEventListener('click',()=>{
-    if(!invRaw) return;
-    const set=buildSet(recordsFromRaw(invRaw,IDS_MATCH),'ملف: '+invRaw.name,true);
-    setInvSource(set,true);
-    document.getElementById('invStatus').textContent='تم الاعتماد — '+set.items.length+' صنف بكمياته';
+  // Re-apply live whenever the user adjusts a column dropdown (including
+  // warehouse), so a wrong auto-guess never leaves stale data silently in place.
+  [IDS_MATCH.num,IDS_MATCH.name,IDS_MATCH.qty,IDS_MATCH.unit,IDS_MATCH.warehouse].forEach(id=>{
+    document.getElementById(id).addEventListener('change',applyInvNow);
   });
 
   async function handleWantedFile(file){
+    if(!ensureXLSX() && !/\.txt$/i.test(file.name)) return;
     try{
       let lines=[];
       if(/\.txt$/i.test(file.name)){
@@ -760,103 +846,238 @@
       : wantedLines.length>0;
     document.getElementById('runBtn').disabled=!(ready&&INV.items.length>0);
   }
-  const badgeLabel=s=> s==='found'?'متوفر': s==='partial'?'يحتاج تأكيد':s==='no_stock'?'لا يوجد مخزون':'غير موجود';
+  const badgeLabel=s=> s==='found'?'متوفر': s==='partial'?'يحتاج تأكيد':'غير موجود';
   function invLabel(i){
     const v=INV.items[i];
     return v.name+' · '+(v.itemNumber||'-')+(INV.hasQty?(' · '+v.qty+(v.unit?(' '+v.unit):'')):'');
   }
+  // Builds the warehouse <select> for one row, or a plain placeholder when
+  // there's nothing to pick from (no warehouse column, or zero stock everywhere).
+  function warehouseCellHTML(i,inv,whIdx){
+    if(!inv) return '-';
+    if(!INV.hasWarehouse) return '<span style="color:var(--ink-soft)">-</span>';
+    if(!inv.warehouses||!inv.warehouses.length) return '<span style="color:var(--notfound-ink)">لا يوجد مخزون</span>';
+    const opts=inv.warehouses.map((w,wi)=>
+      '<option value="'+wi+'" '+(wi===(whIdx||0)?'selected':'')+'>'+escapeHtml(w.wh)+' — '+w.qty+(inv.unit?(' '+escapeHtml(inv.unit)):'')+'</option>'
+    ).join('');
+    return '<select class="whsel" data-i="'+i+'">'+opts+'</select>';
+  }
+  function statusSelectHTML(i,status){
+    const opt=(v,label)=>'<option value="'+v+'" '+(status===v?'selected':'')+'>'+label+'</option>';
+    return '<select class="statussel '+status+'" data-i="'+i+'">'
+      +opt('found','متوفر')+opt('partial','يحتاج تأكيد')+opt('notfound','غير موجود')
+      +'</select>';
+  }
 
-  function unitSelectMarkup(itemNumber,selected,index,name){
-    const item=catalogItemFor(itemNumber,name), units=item?splitUnitChoices(item.unit):[], value=units.includes(selected)?selected:(units[0]||'');
-    const options=units.map(unit=>'<option value="'+escapeHtml(unit)+'"'+(unit===value?' selected':'')+'>'+escapeHtml(unit)+'</option>').join('');
-    const placeholder=units.length?'':'<option value="" selected>'+((item)?'لا توجد وحدة مسجلة':'اختر الصنف أولاً')+'</option>';
-    return '<select class="result-unit-select" data-unit="'+index+'"'+(units.length?'':' disabled')+'>'+placeholder+options+'</select>';
-  }
-  function renderSummary(){
-    const c={found:0,partial:0,no_stock:0,notfound:0}; results.forEach(r=>c[r.status]++);
-    document.getElementById('summary').innerHTML=
-      '<div class="stat'+(activeFilter==='all'?' active':'')+'" data-filter="all" role="button" tabindex="0"><div class="n">'+results.length+'</div><div class="l">إجمالي الطلب</div></div>'+
-      '<div class="stat found'+(activeFilter==='found'?' active':'')+'" data-filter="found" role="button" tabindex="0"><div class="n">'+c.found+'</div><div class="l">متوفر</div></div>'+
-      '<div class="stat partial'+(activeFilter==='partial'?' active':'')+'" data-filter="partial" role="button" tabindex="0"><div class="n">'+c.partial+'</div><div class="l">يحتاج تأكيد</div></div>'+
-      '<div class="stat notfound'+(activeFilter==='no_stock'?' active':'')+'" data-filter="no_stock" role="button" tabindex="0"><div class="n">'+c.no_stock+'</div><div class="l">لا يوجد مخزون</div></div>'+
-      '<div class="stat notfound'+(activeFilter==='notfound'?' active':'')+'" data-filter="notfound" role="button" tabindex="0"><div class="n">'+c.notfound+'</div><div class="l">غير موجود</div></div>';
-  }
-  function renderResults(){
-    const tb=document.getElementById('resultsBody');
-    const qn=normalizeAr(document.getElementById('search').value.trim());
-    tb.innerHTML='';
-    let visibleRows=results.map((r,i)=>({r,i})).filter(({r})=>
-      (activeFilter==='all'||r.status===activeFilter)&&(!qn||normalizeAr(r.raw).includes(qn))
-    );
-    ['qty','confidence'].forEach(field=>{
-      const {op,value}=tableFilter[field], threshold=parseFloat(value);
-      const valueOf=r=>{
-        if(field==='confidence'){
-          const c=r.candidates.find(c=>c.idx===r.chosenIdx); return r.chosenIdx>=0?(c?c.score:1)*100:null;
+  /* -------- flatten each result into the plain fields every column,
+     filter, and sort operates on. One source of truth per row. -------- */
+  function buildViewRows(){
+    return results.map((r,i)=>{
+      const inv=r.chosenIdx>=0?INV.items[r.chosenIdx]:null;
+      const whIdx=r.whIdx||0;
+      let warehouse='-', qty=null, noStock=false, unit='-';
+      if(inv){
+        unit=inv.unit||'-';
+        if(inv.warehouses&&inv.warehouses.length){
+          const w=inv.warehouses[whIdx]||inv.warehouses[0];
+          warehouse=w?w.wh:'-';
+          qty=w?w.qty:0;
+        } else if(INV.hasWarehouse){
+          warehouse='لا يوجد مخزون'; qty=0; noStock=true;
+        } else {
+          warehouse='-';
+          qty=INV.hasQty?inv.qty:null;
+          if(INV.hasQty&&inv.qty<=0) noStock=true;
         }
-        const inv=r.chosenIdx>=0?INV.items[r.chosenIdx]:null;
-        if(!inv||!INV.hasQty)return null;
-        const stock=inv.stocks.find(s=>s.warehouse===r.selectedWarehouse)||inv.stocks[0];
-        return Number(stock?stock.qty:inv.qty)||0;
-      };
-      if((op==='gt'||op==='lt')&&!isNaN(threshold)) visibleRows=visibleRows.filter(({r})=>{
-        const v=valueOf(r); return v!==null&&(op==='gt'?v>threshold:v<threshold);
-      });
+      }
+      const cc=r.candidates&&r.candidates.find(c=>c.idx===r.chosenIdx);
+      const confidence=r.chosenIdx>=0?Math.round((cc?cc.score:1)*100):null;
+      return {i,raw:r.raw,qtyDisplay:r.qtyDisplay,status:r.status,
+        itemNumber:inv?inv.itemNumber:'',invName:inv?inv.name:'',
+        warehouse,unit,qty,confidence,inv,noStock};
     });
-    if(tableSort.field){
-      const valueOf=r=>{
-        if(tableSort.field==='confidence'){
-          const c=r.candidates.find(c=>c.idx===r.chosenIdx); return r.chosenIdx>=0?(c?c.score:1)*100:null;
+  }
+  function colFilterPasses(vr,key,f){
+    const val=vr[key];
+    if(f.type==='contains'){
+      const hay=normalizeAr(String(val==null?'':val));
+      return hay.includes(normalizeAr(f.val));
+    }
+    const num=(val===null||val===undefined||val==='')?NaN:parseFloat(val);
+    if(isNaN(num)) return false;
+    if(f.type==='gt') return num>f.val;
+    if(f.type==='lt') return num<f.val;
+    if(f.type==='between') return num>=f.a&&num<=f.b;
+    return true;
+  }
+  function applyFiltersAndSort(viewRows){
+    let out=viewRows.filter(vr=>{
+      if(statFilter==='found'&&vr.status!=='found') return false;
+      if(statFilter==='partial'&&vr.status!=='partial') return false;
+      if(statFilter==='notfound'&&vr.status!=='notfound') return false;
+      if(statFilter==='nostock'&&!vr.noStock) return false;
+      for(const key in columnFilters){ if(!colFilterPasses(vr,key,columnFilters[key])) return false; }
+      return true;
+    });
+    const qn=normalizeAr(document.getElementById('search').value.trim());
+    if(qn) out=out.filter(vr=>normalizeAr(vr.raw).includes(qn));
+    if(sortSpec){
+      const key=sortSpec.key, dir=sortSpec.dir;
+      out=out.slice().sort((a,b)=>{
+        let av=a[key], bv=b[key];
+        const an=typeof av==='number', bn=typeof bv==='number';
+        if(an||bn){
+          av=an?av:-Infinity; bv=bn?bv:-Infinity;
+          return dir==='asc'?av-bv:bv-av;
         }
-        const inv=r.chosenIdx>=0?INV.items[r.chosenIdx]:null;
-        if(!inv||!INV.hasQty)return null;
-        const stock=inv.stocks.find(s=>s.warehouse===r.selectedWarehouse)||inv.stocks[0];
-        return Number(stock?stock.qty:inv.qty)||0;
-      };
-      visibleRows.sort((a,b)=>{
-        const av=valueOf(a.r),bv=valueOf(b.r);
-        if(av===null&&bv===null)return 0;if(av===null)return 1;if(bv===null)return -1;
-        return (tableSort.direction==='asc'?1:-1)*(av-bv);
+        av=String(av||''); bv=String(bv||'');
+        const cmp=av.localeCompare(bv,'ar');
+        return dir==='asc'?cmp:-cmp;
       });
     }
-    visibleRows.forEach(({r,i},displayIndex)=>{
-      const inv=r.chosenIdx>=0?INV.items[r.chosenIdx]:null;
-      const cc=r.candidates.find(c=>c.idx===r.chosenIdx);
-      const stocks=inv?inv.stocks:[], selectedStock=inv?(stocks.find(s=>s.warehouse===r.selectedWarehouse)||stocks[0]):null;
-      const warehouseCell=stocks.length?'<select class="warehouse-select" data-wh="'+i+'">'+stocks.map(s=>'<option value="'+escapeHtml(s.warehouse)+'"'+((selectedStock&&selectedStock.warehouse===s.warehouse)?' selected':'')+'>'+escapeHtml(s.warehouse)+' ('+escapeHtml(s.qty)+')</option>').join('')+'</select>':(inv?'—':'-');
-      const tr=document.createElement('tr');
-      tr.innerHTML=
-        '<td class="mono" style="color:var(--ink-soft)">'+(displayIndex+1)+'</td>'+
-        '<td class="req-name"><input type="text" class="reqinput" data-i="'+i+'" value="'+escapeHtml(r.raw)+'" placeholder="اكتب اسم أو رقم الصنف" autocomplete="off"></td>'+
-        '<td class="req-qty">'+escapeHtml(r.qtyDisplay)+'</td>'+
-        '<td><span class="status-pill '+r.status+'">'+badgeLabel(r.status)+'</span></td>'+
-        '<td><input type="text" class="combo-input matchinput" data-i="'+i+'" value="'+(inv?escapeHtml(invLabel(r.chosenIdx)):'')+'" placeholder="— غير موجود — اكتب للبحث" autocomplete="off"></td>'+
-        '<td>'+warehouseCell+'</td>'+
-        '<td class="qtycell">'+(inv?(INV.hasQty?(selectedStock?selectedStock.qty:inv.qty):'—'):'-')+'</td>'+
-        '<td>'+unitSelectMarkup(inv?inv.itemNumber:'',inv?(Object.prototype.hasOwnProperty.call(r,'selectedUnit')?r.selectedUnit:undefined):'',i,inv?inv.name:'')+'</td>'+
-        '<td class="confcell">'+(r.chosenIdx>=0?Math.round((cc?cc.score:1)*100)+'%':'-')+'</td>'+
-        '<td><button class="iconbtn" data-del="'+i+'" title="حذف الصف">🗑</button></td>';
-      tb.appendChild(tr);
+    return out;
+  }
+
+  function renderSummary(){
+    const vr=buildViewRows();
+    const c={found:0,partial:0,notfound:0,nostock:0};
+    vr.forEach(v=>{ c[v.status]++; if(v.noStock) c.nostock++; });
+    const mk=(key,label,count,cls)=>
+      '<div class="stat clickable '+cls+(statFilter===key?' active':'')+'" data-stat="'+key+'">'
+      +'<div class="n">'+count+'</div><div class="l">'+label+'</div></div>';
+    document.getElementById('summary').innerHTML=
+      mk('all','إجمالي المطلوب',results.length,'')+
+      mk('found','متوفر',c.found,'found')+
+      mk('partial','تحتاج تأكيد',c.partial,'partial')+
+      mk('notfound','غير موجود',c.notfound,'notfound')+
+      mk('nostock','لا يوجد مخزون',c.nostock,'nostock');
+    document.querySelectorAll('[data-stat]').forEach(el=>el.addEventListener('click',()=>{
+      statFilter=el.dataset.stat; renderSummary(); renderResults();
+    }));
+  }
+
+  /* -------- column header sort/filter popup -------- */
+  const colPop=document.createElement('div');
+  colPop.className='colmenu-pop'; colPop.hidden=true;
+  document.body.appendChild(colPop);
+  function closeColPop(){ colPop.hidden=true; }
+  document.addEventListener('mousedown',e=>{
+    if(!colPop.hidden && !colPop.contains(e.target) && !e.target.closest('th.sortable')) closeColPop();
+  });
+  function openColMenu(th){
+    const key=th.dataset.col, type=th.dataset.type;
+    const r=th.getBoundingClientRect();
+    colPop.style.top=(r.bottom+4)+'px';
+    colPop.style.right=Math.max(window.innerWidth-r.right,8)+'px';
+    colPop.style.left='auto';
+    const curSort=sortSpec&&sortSpec.key===key?sortSpec.dir:null;
+    const f=columnFilters[key];
+    let html='';
+    html+='<div class="cm-item'+(curSort==='asc'?' active':'')+'" data-act="asc">↑ تصاعدي</div>';
+    html+='<div class="cm-item'+(curSort==='desc'?' active':'')+'" data-act="desc">↓ تنازلي</div>';
+    html+='<div class="cm-sep"></div>';
+    if(type==='number'){
+      html+='<div class="cm-sub">أكبر من</div><input type="number" class="cm-input" id="cmGt" value="'+(f&&f.type==='gt'?f.val:'')+'">';
+      html+='<div class="cm-sub">أصغر من</div><input type="number" class="cm-input" id="cmLt" value="'+(f&&f.type==='lt'?f.val:'')+'">';
+      html+='<div class="cm-sub">بين</div><div class="cm-row"><input type="number" class="cm-input" id="cmBtwA" placeholder="من" value="'+(f&&f.type==='between'?f.a:'')+'"><input type="number" class="cm-input" id="cmBtwB" placeholder="إلى" value="'+(f&&f.type==='between'?f.b:'')+'"></div>';
+    } else {
+      html+='<div class="cm-sub">يحتوي على نص</div><input type="text" class="cm-input" id="cmContains" value="'+escapeHtml(f&&f.type==='contains'?f.val:'')+'">';
+    }
+    html+='<div class="cm-actions"><button class="cm-clear">مسح</button><button class="cm-apply">تطبيق</button></div>';
+    colPop.innerHTML=html;
+    colPop.hidden=false;
+    colPop.querySelectorAll('.cm-item').forEach(el=>el.addEventListener('click',()=>{
+      sortSpec={key,dir:el.dataset.act}; closeColPop(); renderResults();
+    }));
+    colPop.querySelector('.cm-clear').addEventListener('click',()=>{
+      delete columnFilters[key];
+      if(sortSpec&&sortSpec.key===key) sortSpec=null;
+      closeColPop(); renderResults();
     });
-    if(!visibleRows.length) tb.innerHTML='<tr><td colspan="10"><div class="empty">لا نتائج للفلتر الحالي</div></td></tr>';
+    colPop.querySelector('.cm-apply').addEventListener('click',()=>{
+      if(type==='number'){
+        const gt=colPop.querySelector('#cmGt').value, lt=colPop.querySelector('#cmLt').value;
+        const a=colPop.querySelector('#cmBtwA').value, b=colPop.querySelector('#cmBtwB').value;
+        if(a!==''&&b!=='') columnFilters[key]={type:'between',a:parseFloat(a),b:parseFloat(b)};
+        else if(gt!=='') columnFilters[key]={type:'gt',val:parseFloat(gt)};
+        else if(lt!=='') columnFilters[key]={type:'lt',val:parseFloat(lt)};
+        else delete columnFilters[key];
+      } else {
+        const v=colPop.querySelector('#cmContains').value.trim();
+        if(v) columnFilters[key]={type:'contains',val:v}; else delete columnFilters[key];
+      }
+      closeColPop(); renderResults();
+    });
+  }
+  document.querySelectorAll('#page-match th.sortable').forEach(th=>{
+    th.dataset.label=th.textContent;
+    th.addEventListener('click',()=>{
+      if(!colPop.hidden){ closeColPop(); return; }
+      openColMenu(th);
+    });
+  });
+  function updateHeaderIndicators(){
+    document.querySelectorAll('#page-match th.sortable').forEach(th=>{
+      const key=th.dataset.col;
+      th.classList.toggle('filtered',!!columnFilters[key]);
+      let label=th.dataset.label;
+      if(sortSpec&&sortSpec.key===key) label+=sortSpec.dir==='asc'?' ↑':' ↓';
+      th.textContent=label;
+    });
+  }
+
+  function renderResults(){
+    const tb=document.getElementById('resultsBody');
+    const viewRows=applyFiltersAndSort(buildViewRows());
+    tb.innerHTML='';
+    if(!viewRows.length){
+      tb.innerHTML='<tr><td colspan="11"><div class="empty">لا نتائج للفلتر الحالي</div></td></tr>';
+    } else {
+      viewRows.forEach(vr=>{
+        const i=vr.i, r=results[i];
+        const tr=document.createElement('tr');
+        tr.innerHTML=
+          '<td class="mono" style="color:var(--ink-soft)">'+(i+1)+'</td>'+
+          '<td class="req-name"><input type="text" class="reqinput" data-i="'+i+'" value="'+escapeHtml(vr.raw)+'" placeholder="اكتب اسم أو رقم الصنف" autocomplete="off"></td>'+
+          '<td class="req-qty">'+escapeHtml(vr.qtyDisplay)+'</td>'+
+          '<td>'+statusSelectHTML(i,vr.status)+'</td>'+
+          '<td class="mono">'+escapeHtml(vr.itemNumber||'-')+'</td>'+
+          '<td><input type="text" class="combo-input matchinput" data-i="'+i+'" value="'+(vr.inv?escapeHtml(invLabel(r.chosenIdx)):'')+'" placeholder="— غير موجود — اكتب للبحث" autocomplete="off"></td>'+
+          '<td>'+warehouseCellHTML(i,vr.inv,r.whIdx)+'</td>'+
+          '<td>'+escapeHtml(vr.unit||'-')+'</td>'+
+          '<td class="qtycell">'+(vr.qty===null?'-':(INV.hasQty?vr.qty:'—'))+'</td>'+
+          '<td class="confcell">'+(vr.confidence===null?'-':vr.confidence+'%')+'</td>'+
+          '<td><button class="iconbtn" data-del="'+i+'" title="حذف الصف">🗑</button></td>';
+        tb.appendChild(tr);
+      });
+    }
+    updateHeaderIndicators();
 
     tb.querySelectorAll('[data-del]').forEach(b=>b.addEventListener('click',()=>{
       results.splice(parseInt(b.dataset.del),1); renderSummary(); renderResults();
     }));
 
-    tb.querySelectorAll('.warehouse-select').forEach(sel=>sel.addEventListener('change',()=>{
-      results[parseInt(sel.dataset.wh)].selectedWarehouse=sel.value; renderResults();
-    }));
-    tb.querySelectorAll('.result-unit-select').forEach(sel=>sel.addEventListener('change',()=>{
-      results[parseInt(sel.dataset.unit)].selectedUnit=sel.value; renderResults();
-    }));
+    tb.querySelectorAll('.statussel').forEach(sel=>{
+      const i=parseInt(sel.dataset.i);
+      sel.addEventListener('change',()=>{
+        results[i].status=sel.value; renderSummary(); renderResults();
+      });
+    });
+
+    tb.querySelectorAll('.whsel').forEach(sel=>{
+      const i=parseInt(sel.dataset.i);
+      sel.addEventListener('change',()=>{
+        results[i].whIdx=parseInt(sel.value);
+        renderResults(); // only the qty cell needs refreshing, full re-render is simplest & cheap
+      });
+    });
 
     tb.querySelectorAll('.reqinput').forEach(inp=>{
       const i=parseInt(inp.dataset.i);
       attachCombo(inp,()=>INV,(q,set)=>searchSet(set,q,40).map(idx=>({idx})),idx=>{
         if(idx<0) return;
         const inv=INV.items[idx];
-        results[i]={raw:inv.name,qtyDisplay:results[i].qtyDisplay,status:statusForItem(idx,1),candidates:[{idx:idx,score:1}],chosenIdx:idx};
+        results[i]={raw:inv.name,qtyDisplay:results[i].qtyDisplay,status:'found',candidates:[{idx:idx,score:1}],chosenIdx:idx,whIdx:0};
         renderSummary(); renderResults();
       },'اختر من المخزون لتعبئة الصف');
       inp.addEventListener('change',()=>{
@@ -880,13 +1101,9 @@
         return [{clear:true}].concat(items);
       },idx=>{
         results[i].chosenIdx=idx;
-        results[i].status=idx>=0?statusForItem(idx,1):'notfound';
-        if(idx>=0) results[i].selectedUnit=catalogUnitChoices(INV.items[idx].itemNumber,INV.items[idx].name)[0]||'';
-        else delete results[i].selectedUnit;
-        if(idx>=0){
-          const chosen=results[i].candidates.find(c=>c.idx===idx);
-          if(chosen) chosen.score=1; else results[i].candidates.unshift({idx:idx,score:1});
-        }
+        results[i].status=idx>=0?'found':'notfound';
+        results[i].whIdx=0;
+        if(idx>=0&&!results[i].candidates.some(c=>c.idx===idx)) results[i].candidates.unshift({idx:idx,score:1});
         renderSummary(); renderResults();
       },'كل الأصناف المطابقة (يدعم *نص*نص*)');
     });
@@ -915,192 +1132,73 @@
     },20);
   });
   document.getElementById('search').addEventListener('input',renderResults);
-  const closeTablePopups=()=>{
-    document.querySelectorAll('[data-popup]').forEach(p=>p.hidden=true);
-    document.querySelectorAll('[data-popup-toggle]').forEach(b=>b.setAttribute('aria-expanded','false'));
-  };
-  document.querySelectorAll('[data-popup-toggle]').forEach(toggle=>toggle.addEventListener('click',e=>{
-    e.stopPropagation();
-    const field=toggle.dataset.popupToggle, popup=document.querySelector('[data-popup="'+field+'"]'), opening=popup.hidden;
-    closeTablePopups();
-    if(opening){
-      popup.hidden=false;toggle.setAttribute('aria-expanded','true');
-      const rect=toggle.getBoundingClientRect(), width=popup.offsetWidth, height=popup.offsetHeight;
-      popup.style.top=Math.max(8,Math.min(rect.bottom+4,window.innerHeight-height-8))+'px';
-      popup.style.left=Math.max(8,Math.min(rect.right-width,window.innerWidth-width-8))+'px';
-    }
-  }));
-  document.querySelectorAll('[data-popup]').forEach(popup=>popup.addEventListener('click',e=>e.stopPropagation()));
-  document.querySelectorAll('[data-sort]').forEach(button=>button.addEventListener('click',()=>{
-    const [field,direction]=button.dataset.sort.split(':'); tableSort={field,direction};
-    document.querySelectorAll('[data-popup-toggle]').forEach(b=>b.classList.toggle('has-filter',b.dataset.popupToggle===tableSort.field||!!tableFilter[b.dataset.popupToggle].op));
-    renderResults(); closeTablePopups();
-  }));
-  document.querySelectorAll('[data-op]').forEach(button=>button.addEventListener('click',()=>{
-    const [field,op]=button.dataset.op.split(':');
-    document.querySelectorAll('[data-op^="'+field+':"]').forEach(b=>b.classList.toggle('active',b===button));
-    document.querySelector('[data-filter-value="'+field+'"]').dataset.pendingOp=op;
-  }));
-  document.querySelectorAll('[data-apply]').forEach(button=>button.addEventListener('click',()=>{
-    const field=button.dataset.apply, input=document.querySelector('[data-filter-value="'+field+'"]'), value=input.value.trim(), op=input.dataset.pendingOp;
-    if(!op||value===''||!Number.isFinite(Number(value))) return;
-    tableFilter[field]={op,value:Number(value)};
-    document.querySelector('[data-popup-toggle="'+field+'"]').classList.add('has-filter');
-    renderResults(); closeTablePopups();
-  }));
-  document.querySelectorAll('[data-clear]').forEach(button=>button.addEventListener('click',()=>{
-    const field=button.dataset.clear, input=document.querySelector('[data-filter-value="'+field+'"]');
-    tableFilter[field]={op:'',value:''}; input.value=''; delete input.dataset.pendingOp;
-    document.querySelectorAll('[data-op^="'+field+':"]').forEach(b=>b.classList.remove('active'));
-    if(tableSort.field===field)tableSort={field:'',direction:''};
-    document.querySelector('[data-popup-toggle="'+field+'"]').classList.remove('has-filter');
-    if(tableSort.field) document.querySelector('[data-popup-toggle="'+tableSort.field+'"]').classList.add('has-filter');
-    renderResults(); closeTablePopups();
-  }));
-  document.addEventListener('click',closeTablePopups);
-  const summaryEl=document.getElementById('summary');
-  const activateSummaryFilter=el=>{
-    const card=el.closest('[data-filter]'); if(!card)return;
-    activeFilter=card.dataset.filter; renderSummary(); renderResults();
-  };
-  summaryEl.addEventListener('click',e=>activateSummaryFilter(e.target));
-  summaryEl.addEventListener('keydown',e=>{
-    if((e.key==='Enter'||e.key===' ')&&e.target.matches('[data-filter]')){e.preventDefault();activateSummaryFilter(e.target);}
-  });
   document.getElementById('addRowBtn').addEventListener('click',()=>{
-    results.push({raw:'',qtyDisplay:'-',status:'notfound',candidates:[],chosenIdx:-1});
-    activeFilter='all';
+    results.push({raw:'',qtyDisplay:'-',status:'notfound',candidates:[],chosenIdx:-1,whIdx:0});
+    statFilter='all';
     renderSummary(); renderResults();
     const ins=document.querySelectorAll('#resultsBody .reqinput');
     if(ins.length) ins[ins.length-1].focus();
   });
   document.getElementById('exportBtn').addEventListener('click',async()=>{
-    const aoa=[['#','الصنف المطلوب','الكمية المطلوبة','الحالة','رقم الصنف','الصنف بالمخزون','المستودع','الكمية المتاحة','الوحدة','الثقة']];
-    results.forEach((r,i)=>{
-      const inv=r.chosenIdx>=0?INV.items[r.chosenIdx]:null;
-      const stock=inv?(inv.stocks.find(s=>s.warehouse===r.selectedWarehouse)||inv.stocks[0]):null;
-      const cc=r.candidates.find(c=>c.idx===r.chosenIdx);
-      const catalogUnits=inv?catalogUnitChoices(inv.itemNumber,inv.name):[];
-      const unit=inv?(catalogUnits.includes(r.selectedUnit)?r.selectedUnit:catalogUnits[0]||'-'):'-';
-      aoa.push([i+1,r.raw,r.qtyDisplay,badgeLabel(r.status),inv?inv.itemNumber:'-',inv?inv.name:'-',
-                stock?stock.warehouse:'-',inv?(INV.hasQty?(stock?stock.qty:inv.qty):'غير متوفرة بالكتالوج'):'-',unit,
-                r.chosenIdx>=0?Math.round((cc?cc.score:1)*100)+'%':'-']);
+    const aoa=[['#','الصنف المطلوب','الكمية المطلوبة','الحالة','رقم الصنف','الصنف بالمخزون','المستودع','الوحدة','الكمية المتاحة','الدقة']];
+    buildViewRows().forEach(vr=>{
+      aoa.push([vr.i+1,vr.raw,vr.qtyDisplay,badgeLabel(vr.status),vr.itemNumber||'-',vr.invName||'-',
+        vr.warehouse,vr.unit,vr.qty===null?'-':(INV.hasQty?vr.qty:'لم يتم رفع ملف مخزون'),
+        vr.confidence===null?'-':vr.confidence+'%']);
     });
-    await exportAOA('نتيجة_المطابقة.xlsx','نتيجة المطابقة',aoa,[{wch:5},{wch:32},{wch:16},{wch:15},{wch:12},{wch:42},{wch:22},{wch:18},{wch:12},{wch:10}]);
+    await exportAOA('نتيجة_المطابقة.xlsx','نتيجة المطابقة',aoa,[{wch:5},{wch:32},{wch:16},{wch:15},{wch:12},{wch:42},{wch:16},{wch:12},{wch:14},{wch:10}]);
   });
 
   /* ================= MANUAL ================= */
-  let manualRows=[{itemNumber:'',name:'',qty:'',unit:'',catalogItemNumber:''}];
-  function clearManualItemSelection(i){
-    manualRows[i].catalogItemNumber=''; manualRows[i].unit='';
-    const sel=document.querySelector('#manualBody select[data-f="unit"][data-i="'+i+'"]');
-    if(sel){sel.innerHTML='<option value="" selected>اختر الصنف أولاً</option>';sel.disabled=true;}
-  }
+  let manualRows=[{itemNumber:'',name:''}];
   function renderManual(){
     const tb=document.getElementById('manualBody');
     if(!tb) return;
     tb.innerHTML='';
     manualRows.forEach((row,i)=>{
-      const units=catalogUnitChoices(row.catalogItemNumber), selectedUnit=units.includes(row.unit)?row.unit:(units[0]||'');
-      const unitOptions=units.map(unit=>'<option value="'+escapeHtml(unit)+'"'+(unit===selectedUnit?' selected':'')+'>'+escapeHtml(unit)+'</option>').join('');
       const tr=document.createElement('tr');
       tr.innerHTML=
         '<td><input type="text" class="mnum" data-i="'+i+'" value="'+escapeHtml(row.itemNumber)+'" placeholder="رقم" autocomplete="off"></td>'+
         '<td><input type="text" class="mname" data-i="'+i+'" value="'+escapeHtml(row.name)+'" placeholder="اسم الصنف" autocomplete="off"></td>'+
-        '<td><input type="text" data-f="qty" data-i="'+i+'" value="'+escapeHtml(row.qty)+'" placeholder="0"></td>'+
-        '<td><select data-f="unit" data-i="'+i+'"'+(units.length?'':' disabled')+'><option value=""'+(!units.length?' selected':'')+'>'+((row.catalogItemNumber&&CAT_ITEM_BY_NUM.has(row.catalogItemNumber))?'لا توجد وحدة مسجلة':'اختر الصنف أولاً')+'</option>'+unitOptions+'</select></td>'+
         '<td><button class="iconbtn" data-mdel="'+i+'" title="حذف">🗑</button></td>';
       tb.appendChild(tr);
     });
-    tb.querySelectorAll('[data-f]').forEach(inp=>inp.addEventListener(inp.tagName==='SELECT'?'change':'input',()=>{
-      manualRows[parseInt(inp.dataset.i)][inp.dataset.f]=inp.value;
-    }));
-    // ArrowDown: إنشاء/الانتقال للصف التالي فقط عندما لا تكون قائمة الاقتراحات مفتوحة
-tb.querySelectorAll('input').forEach(inp=>{
-  inp.addEventListener('keydown',e=>{
-    if(e.key !== 'ArrowDown') return;
-
-    // إذا قائمة الاقتراحات مفتوحة، اترك attachCombo يتعامل مع ArrowDown
-    if(!pop.hidden && popOwner===inp) return;
-
-    const i=parseInt(inp.dataset.i);
-    const row=manualRows[i];
-
-    const hasData =
-      String(row.itemNumber || '').trim() !== '' ||
-      String(row.name || '').trim() !== '' ||
-      String(row.qty || '').trim() !== '' ||
-      String(row.unit || '').trim() !== '';
-
-    // الصف فارغ → لا تعمل شيء
-    if(!hasData) return;
-
-    e.preventDefault();
-
-    // آخر صف → أنشئ صف جديد
-    if(i === manualRows.length - 1){
-      manualRows.push({itemNumber:'',name:'',qty:'',unit:'',catalogItemNumber:''});
-
-      renderManual();
-
-      const newInput=document.querySelector(
-        '#manualBody .mnum[data-i="'+(manualRows.length-1)+'"]'
-      );
-
-      if(newInput) newInput.focus();
-    }else{
-      // يوجد صف بعده → انتقل إليه
-      const nextInput=document.querySelector(
-        '#manualBody .mnum[data-i="'+(i+1)+'"]'
-      );
-
-      if(nextInput) nextInput.focus();
-    }
-  });
-});
     tb.querySelectorAll('[data-mdel]').forEach(b=>b.addEventListener('click',()=>{
       manualRows.splice(parseInt(b.dataset.mdel),1);
-      if(!manualRows.length) manualRows.push({itemNumber:'',name:'',qty:'',unit:'',catalogItemNumber:''});
+      if(!manualRows.length) manualRows.push({itemNumber:'',name:''});
       renderManual();
     }));
     function fillRow(i,idx){
       const inv=CAT.items[idx];
-      manualRows[i]={itemNumber:String(inv.itemNumber||''),name:inv.name,
-                     qty:manualRows[i].qty, unit:catalogUnitChoices(inv.itemNumber,inv.name)[0]||'',catalogItemNumber:String(inv.itemNumber||'')};
+      manualRows[i]={itemNumber:String(inv.itemNumber||''),name:inv.name};
+      // adding a blank row keeps the flow going: pick, land on the next row
+      if(i===manualRows.length-1) manualRows.push({itemNumber:'',name:''});
       renderManual();
-      const qi=document.querySelector('#manualBody input[data-f="qty"][data-i="'+i+'"]');
-      if(qi) qi.focus();
+      const next=document.querySelector('#manualBody .mnum[data-i="'+(i+1)+'"]');
+      if(next) next.focus();
     }
     // Always reads CAT, so changing the stock source can never disable it.
     tb.querySelectorAll('.mnum').forEach(inp=>{
       const i=parseInt(inp.dataset.i);
-      inp.addEventListener('input',()=>{manualRows[i].itemNumber=inp.value;clearManualItemSelection(i);});
+      inp.addEventListener('input',()=>{manualRows[i].itemNumber=inp.value;});
       attachCombo(inp,()=>CAT,(q,set)=>searchSet(set,q,40).map(idx=>({idx})),idx=>{if(idx>=0)fillRow(i,idx);},'اقتراحات من الكتالوج المخزّن');
     });
     tb.querySelectorAll('.mname').forEach(inp=>{
       const i=parseInt(inp.dataset.i);
-      inp.addEventListener('input',()=>{manualRows[i].name=inp.value;clearManualItemSelection(i);});
+      inp.addEventListener('input',()=>{manualRows[i].name=inp.value;});
       attachCombo(inp,()=>CAT,(q,set)=>searchSet(set,q,40).map(idx=>({idx})),idx=>{if(idx>=0)fillRow(i,idx);},'اقتراحات من الكتالوج المخزّن');
     });
   }
   document.getElementById('manualAddRowBtn').addEventListener('click',()=>{
-    manualRows.push({itemNumber:'',name:'',qty:'',unit:'',catalogItemNumber:''}); renderManual();
+    manualRows.push({itemNumber:'',name:''}); renderManual();
     const ins=document.querySelectorAll('#manualBody .mnum');
     if(ins.length) ins[ins.length-1].focus();
   });
   document.getElementById('manualExportBtn').addEventListener('click',async()=>{
-    const aoa=[['رقم الصنف','اسم الصنف','الكمية','الوحدة']];
-    manualRows.forEach(r=>{if(r.name.trim())aoa.push([r.itemNumber,r.name,r.qty,r.unit]);});
+    const aoa=[['رقم الصنف','اسم الصنف']];
+    manualRows.forEach(r=>{if(r.name.trim())aoa.push([r.itemNumber,r.name]);});
     if(aoa.length===1){alert('ما في أصناف مدخلة بعد');return;}
-    await exportAOA('اصناف_يدوي.xlsx','أصناف',aoa,[{wch:14},{wch:36},{wch:12},{wch:10}]);
-  });
-  document.getElementById('manualUseBtn').addEventListener('click',()=>{
-    const recs=manualRows.filter(r=>r.name.trim());
-    if(!recs.length){alert('ما في أصناف مدخلة بعد');return;}
-    const set=buildSet(recs,'أصناف مُدخلة يدوياً',true);
-    setInvSource(set,true);
-    document.getElementById('manualStatus').textContent='تم — '+set.items.length+' صنف صاروا مصدر المخزون';
-    gotoPage('match');
+    await exportAOA('اصناف_يدوي.xlsx','أصناف',aoa,[{wch:16},{wch:44}]);
   });
 
   /* ================= FEEDBACK ================= */
@@ -1134,19 +1232,38 @@ tb.querySelectorAll('input').forEach(inp=>{
   function loadCatalog(){
     const raw=window.ITEM_CATALOG;
     if(!Array.isArray(raw)||!raw.length){
-      document.getElementById('catBadge').textContent='تعذّر تحميل الكتالوج المخزّن — ارفع ملف مخزون يدوياً';
+      document.getElementById('catBadge').textContent='⚠ تعذّر تحميل الكتالوج المخزّن';
+      document.getElementById('diagBox').innerHTML=
+        '<div class="diagbox"><b>⚠ ملف الكتالوج (catalog.js) لم يتم تحميله.</b>'
+        +'تحقق من هذا مباشرة: افتح <code>your-site.pages.dev/catalog.js</code> بالمتصفح — '
+        +'المفروض يطلع نص JS خام يبدأ بـ <code>window.ITEM_CATALOG=</code>. لو طلعت صفحة 404، '
+        +'يعني الملف ما انرفع مع الموقع على GitHub/Cloudflare Pages. تقدر كمان تفتح أدوات المطوّر '
+        +'(F12) → تبويب Console وتشوف إذا في خطأ أحمر متعلق بـ catalog.js.'
+        +'<br><br>لحد ما تحله، رفع ملف مخزون يدوياً بصفحة المطابقة رح يخليك تكمل شغلك عادي.</div>';
       return;
     }
-    CAT=buildSet(raw.map(r=>({itemNumber:r[0],name:r[1],qty:0,unit:r[2]||''})),'الكتالوج المخزّن',false);
-    CAT_ITEM_BY_NUM=new Map(CAT.items.map(item=>[item.itemNumber,item]));
-    CAT_ITEM_BY_NAME=new Map();
-    CAT.items.forEach(item=>{const key=normalizeAr(item.name);if(key&&!CAT_ITEM_BY_NAME.has(key))CAT_ITEM_BY_NAME.set(key,item);});
+    CAT=buildSet(raw.map(r=>({itemNumber:r[0],name:r[1],qty:0,units:r[2]||[]})),'الكتالوج المخزّن',false);
     INV=CAT;
     document.getElementById('catBadge').textContent='✓ '+CAT.items.length.toLocaleString('en-US')+' صنف مخزّن وجاهز للبحث فوراً';
     document.getElementById('catSrcTag').textContent='الكتالوج المخزّن ('+CAT.items.length.toLocaleString('en-US')+' صنف)';
     document.getElementById('invSrcTag').textContent='الكتالوج المخزّن';
     renderManual();
     checkReady();
+  }
+  if(typeof XLSX==='undefined'){
+    window.addEventListener('load',()=>{
+      setTimeout(()=>{
+        if(typeof XLSX==='undefined'){
+          const box=document.getElementById('diagBox');
+          box.innerHTML+=
+            '<div class="diagbox"><b>⚠ مكتبة قراءة ملفات إكسل (XLSX) لم تُحمَّل.</b>'
+            +'رفع ملفات إكسل/CSV وتصدير النتائج كإكسل مش رح يشتغلوا لحد ما تنحل. '
+            +'الغالب السبب شبكي: جدار حماية شركة أو حاجب إعلانات يمنع الوصول لـ '
+            +'<code>cdnjs.cloudflare.com</code> و<code>cdn.jsdelivr.net</code>. '
+            +'جرّب تعطيل الحاجب لهالموقع أو افتحه من شبكة ثانية (بيانات الجوال مثلاً) وأعد التحميل.</div>';
+        }
+      },1200);
+    });
   }
   renderManual();
   loadCatalog();
