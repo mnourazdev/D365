@@ -287,6 +287,7 @@
         <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
           <input type="text" id="search" placeholder="فلترة سريعة بالاسم...">
           <button class="secondary" id="addRowBtn">+ إضافة صنف</button>
+          <button class="secondary" id="copyCodesBtn">📋 نسخ أكواد الأصناف</button>
           <button class="secondary" id="exportBtn">⬇ تحميل اكسل</button>
         </div>
       </div>
@@ -311,7 +312,8 @@
       <div class="footnote">
         الحقلان "الصنف المطلوب" و"الصنف بالمخزون" فيهما بحث فوري: نص (<code>فستق براف</code>)، وايلد كارد بنمط D365 (<code>*فستق*براف*</code>)، أو رقم صنف. أي اختيار يدوي يحوّل الحالة إلى "متوفر"، وتقدر كمان تغيّر الحالة يدوياً من القائمة المنسدلة بعمود "الحالة".<br>
         اضغط عنوان أي عمود للفرز (تصاعدي/تنازلي) أو الفلترة — أرقام: أكبر من/أصغر من/بين، نصوص: يحتوي على. النقطة الملوّنة بجانب العنوان تعني فيه فلتر فعّال على هذا العمود.<br>
-        عمود "الدقة" نسبة تطابق الاسم المطلوب مع الصنف المختار (كلما قلّت، زاد احتمال وجود خطأ بالمطابقة يستاهل مراجعة). بدون رفع ملف مخزون، الكمية تظهر <code>—</code> لكن الوحدة تضل تظهر من الكتالوج.
+        عمود "الدقة" نسبة تطابق الاسم المطلوب مع الصنف المختار (كلما قلّت، زاد احتمال وجود خطأ بالمطابقة يستاهل مراجعة). بدون رفع ملف مخزون، الكمية تظهر <code>—</code> لكن الوحدة تضل تظهر من الكتالوج.<br>
+        زر "نسخ أكواد الأصناف" بينسخ أرقام الأصناف (للصفوف الظاهرة حالياً بعد أي فلترة، وبيستثني دايماً صفوف "غير موجود" حتى لو فيها تخمين بأقل ثقة) سطر بكل رقم — جاهزة تلصقها مباشرة بعمود "رقم الصنف" بسطور الـ Sales order بـD365 F&amp;O وبتتعبى باقي البيانات تلقائياً.
       </div>
     </div>
   </section>
@@ -423,7 +425,7 @@
     const skelNormName=skeletonTokens(tokenize(normName)).join(' ');
     const unitList=(units||[]).filter(Boolean);
     return {itemNumber:String(itemNumber==null?'':itemNumber).trim(), name:String(name),
-            qty:isNaN(q)?0:q, unit:unitList.join(' / '), warehouses:whList,
+            qty:isNaN(q)?0:q, unit:unitList.join(' / '), units:unitList, warehouses:whList,
             normName, coreSet:new Set(core), coreStr, bigramSet:bigrams(coreStr||normName),
             skelSet:new Set(skelCore), skelCoreStr, skelBigramSet:bigrams(skelCoreStr||normName), skelNormName};
   }
@@ -567,7 +569,7 @@
     if(queryKind(raw)==='number'){
       const nq=normalizeAr(raw);
       const exact=INV.items.findIndex(inv=>String(inv.itemNumber)===nq);
-      if(exact>=0) return {raw,qtyDisplay:'-',status:'found',candidates:[{idx:exact,score:1}],chosenIdx:exact,whIdx:0};
+      if(exact>=0) return {raw,qtyDisplay:'-',status:'found',candidates:[{idx:exact,score:1}],chosenIdx:exact,whIdx:0,unitIdx:0};
     }
     const norm=normalizeAr(raw), tn=tokenize(norm), to=raw.split(/\s+/).filter(Boolean);
     const core=coreTokens(tn), coreStr=core.join('');
@@ -584,7 +586,7 @@
       candidates=[scored[ci],...scored.filter((s,ix)=>ix!==ci)].slice(0,8);
       chosenIdx=candidates[0].idx;
     }
-    return {raw,qtyDisplay,status,candidates,chosenIdx,whIdx:0};
+    return {raw,qtyDisplay,status,candidates,chosenIdx,whIdx:0,unitIdx:0};
   }
 
   async function exportAOA(filename,sheetName,aoa,cols){
@@ -868,6 +870,17 @@
       +opt('found','متوفر')+opt('partial','يحتاج تأكيد')+opt('notfound','غير موجود')
       +'</select>';
   }
+  // Builds the unit <select> for one row from the catalog/file's unit list
+  // for that item (e.g. Carton / Pcs); a single-unit item just shows plain text.
+  function unitCellHTML(i,inv,unitIdx){
+    if(!inv) return '-';
+    if(!inv.units||!inv.units.length) return '<span style="color:var(--ink-soft)">-</span>';
+    if(inv.units.length===1) return escapeHtml(inv.units[0]);
+    const opts=inv.units.map((u,ui)=>
+      '<option value="'+ui+'" '+(ui===(unitIdx||0)?'selected':'')+'>'+escapeHtml(u)+'</option>'
+    ).join('');
+    return '<select class="unitsel" data-i="'+i+'">'+opts+'</select>';
+  }
 
   /* -------- flatten each result into the plain fields every column,
      filter, and sort operates on. One source of truth per row. -------- */
@@ -875,9 +888,10 @@
     return results.map((r,i)=>{
       const inv=r.chosenIdx>=0?INV.items[r.chosenIdx]:null;
       const whIdx=r.whIdx||0;
+      const unitIdx=r.unitIdx||0;
       let warehouse='-', qty=null, noStock=false, unit='-';
       if(inv){
-        unit=inv.unit||'-';
+        unit=(inv.units&&inv.units.length)?(inv.units[unitIdx]||inv.units[0]):(inv.unit||'-');
         if(inv.warehouses&&inv.warehouses.length){
           const w=inv.warehouses[whIdx]||inv.warehouses[0];
           warehouse=w?w.wh:'-';
@@ -1044,7 +1058,7 @@
           '<td class="mono">'+escapeHtml(vr.itemNumber||'-')+'</td>'+
           '<td><input type="text" class="combo-input matchinput" data-i="'+i+'" value="'+(vr.inv?escapeHtml(invLabel(r.chosenIdx)):'')+'" placeholder="— غير موجود — اكتب للبحث" autocomplete="off"></td>'+
           '<td>'+warehouseCellHTML(i,vr.inv,r.whIdx)+'</td>'+
-          '<td>'+escapeHtml(vr.unit||'-')+'</td>'+
+          '<td>'+unitCellHTML(i,vr.inv,r.unitIdx)+'</td>'+
           '<td class="qtycell">'+(vr.qty===null?'-':(INV.hasQty?vr.qty:'—'))+'</td>'+
           '<td class="confcell">'+(vr.confidence===null?'-':vr.confidence+'%')+'</td>'+
           '<td><button class="iconbtn" data-del="'+i+'" title="حذف الصف">🗑</button></td>';
@@ -1072,12 +1086,20 @@
       });
     });
 
+    tb.querySelectorAll('.unitsel').forEach(sel=>{
+      const i=parseInt(sel.dataset.i);
+      sel.addEventListener('change',()=>{
+        results[i].unitIdx=parseInt(sel.value);
+        renderResults();
+      });
+    });
+
     tb.querySelectorAll('.reqinput').forEach(inp=>{
       const i=parseInt(inp.dataset.i);
       attachCombo(inp,()=>INV,(q,set)=>searchSet(set,q,40).map(idx=>({idx})),idx=>{
         if(idx<0) return;
         const inv=INV.items[idx];
-        results[i]={raw:inv.name,qtyDisplay:results[i].qtyDisplay,status:'found',candidates:[{idx:idx,score:1}],chosenIdx:idx,whIdx:0};
+        results[i]={raw:inv.name,qtyDisplay:results[i].qtyDisplay,status:'found',candidates:[{idx:idx,score:1}],chosenIdx:idx,whIdx:0,unitIdx:0};
         renderSummary(); renderResults();
       },'اختر من المخزون لتعبئة الصف');
       inp.addEventListener('change',()=>{
@@ -1103,6 +1125,7 @@
         results[i].chosenIdx=idx;
         results[i].status=idx>=0?'found':'notfound';
         results[i].whIdx=0;
+        results[i].unitIdx=0;
         if(idx>=0&&!results[i].candidates.some(c=>c.idx===idx)) results[i].candidates.unshift({idx:idx,score:1});
         renderSummary(); renderResults();
       },'كل الأصناف المطابقة (يدعم *نص*نص*)');
@@ -1133,7 +1156,7 @@
   });
   document.getElementById('search').addEventListener('input',renderResults);
   document.getElementById('addRowBtn').addEventListener('click',()=>{
-    results.push({raw:'',qtyDisplay:'-',status:'notfound',candidates:[],chosenIdx:-1,whIdx:0});
+    results.push({raw:'',qtyDisplay:'-',status:'notfound',candidates:[],chosenIdx:-1,whIdx:0,unitIdx:0});
     statFilter='all';
     renderSummary(); renderResults();
     const ins=document.querySelectorAll('#resultsBody .reqinput');
@@ -1147,6 +1170,43 @@
         vr.confidence===null?'-':vr.confidence+'%']);
     });
     await exportAOA('نتيجة_المطابقة.xlsx','نتيجة المطابقة',aoa,[{wch:5},{wch:32},{wch:16},{wch:15},{wch:12},{wch:42},{wch:16},{wch:12},{wch:14},{wch:10}]);
+  });
+
+  async function copyToClipboard(text){
+    try{
+      if(navigator.clipboard && navigator.clipboard.writeText){
+        await navigator.clipboard.writeText(text);
+        return true;
+      }
+    }catch(e){ /* fall through to the manual-selection fallback below */ }
+    try{
+      const ta=document.createElement('textarea');
+      ta.value=text;
+      ta.style.position='fixed'; ta.style.opacity='0'; ta.style.left='-9999px';
+      document.body.appendChild(ta);
+      ta.focus(); ta.select();
+      const ok=document.execCommand('copy');
+      document.body.removeChild(ta);
+      return ok;
+    }catch(e){ return false; }
+  }
+  // Copies the item numbers from whatever rows are CURRENTLY shown (respects
+  // active column filters / search / sort), one per line, ready to paste
+  // straight into the "Item number" column of a D365 F&O sales order grid —
+  // D365 auto-fills the rest and creates one line per pasted item.
+  document.getElementById('copyCodesBtn').addEventListener('click',async()=>{
+    const btn=document.getElementById('copyCodesBtn');
+    // "notfound" rows can still carry a low-confidence guessed itemNumber
+    // (kept for human review) — never include those in a paste meant for an
+    // actual order, regardless of which column/stat filter is active.
+    const codes=applyFiltersAndSort(buildViewRows())
+      .filter(vr=>vr.itemNumber&&vr.status!=='notfound')
+      .map(vr=>vr.itemNumber);
+    if(!codes.length){ alert('ما في أرقام أصناف بالنتائج الظاهرة حالياً للنسخ'); return; }
+    const old=btn.textContent;
+    const ok=await copyToClipboard(codes.join('\n'));
+    btn.textContent=ok?('✓ تم نسخ '+codes.length+' رقم'):'✕ تعذّر النسخ — انسخه يدوياً';
+    setTimeout(()=>{ btn.textContent=old; },2000);
   });
 
   /* ================= MANUAL ================= */
